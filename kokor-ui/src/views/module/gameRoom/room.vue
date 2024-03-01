@@ -370,21 +370,21 @@
       </el-card>
     </el-drawer>
 
-    <!--组合择选择手牌-->
+    <!--组合技选择手牌-->
     <el-dialog style="margin-top: -1%" title="选择手牌" :visible.sync="showCombo" width="70%" :show-close="false"
-               :close-on-click-modal="false">
+               :close-on-click-modal="false" @close="selectedCombo=''">
       <!--手牌-->
       <div style="display: inline-block;width: 100%">
-        <el-card :class="selectedCardIndex===index?'target-card-hand selected':'target-card-hand'"
+        <el-card :class="selectedCardsIndex.includes(index)?'target-card-hand selected':'target-card-hand'"
                  v-for="(item,index) in handList" :key="index"
-                 @click.prevent.native.stop="selectAHandCard(item,index)">
+                 @click.prevent.native.stop="selectSomeCards(item,index)">
           <img class="identity-pic" :src="require('./pic/card/'+item+'.jpg')" :alt="item+'加载失败'"/>
         </el-card>
       </div>
 
       <!--确认按钮-->
       <div slot="footer" class="dialog-footer">
-        <el-button type="primary" :disabled="selectedCardIndex===-1" v-on:click="confirmCard">确定</el-button>
+        <el-button type="primary" :disabled="selectedCardsIndex.length<2" v-on:click="confirmCards">确定</el-button>
       </div>
     </el-dialog>
 
@@ -578,7 +578,7 @@ export default {
       // “夺笋” 说明文字
       comboTwo: <span>打出<strong>1张<span style="color:red">红</span>颜色卡+2张同色的<br/>
         颜色卡</strong>，该颜色的所有玩家<br/>
-        将被你举报了，需要使用<strong>求饶卡</strong><br/>
+        将被你举报，需要使用<strong>求饶卡</strong><br/>
         才能存活。</span>,
       // “我是老六” 说明文字
       comboThree: <span>打出<strong>1张白颜色卡+1张<span style="color:red">红</span>颜色卡</strong>，<br/>
@@ -589,7 +589,7 @@ export default {
         随机抽取<strong>1张</strong>手牌。</span>,
       // “三条” 说明文字
       comboFive: <span>打出<strong>3张相同的牌</strong>，<br/>
-        向任意玩家索要一张<strong>指定手牌</strong>。<br/>
+        向任意玩家索要一张<strong>指定卡牌</strong>。<br/>
         若该玩家有则给你<strong>1张</strong>,<br/>
         若没有，则你浪费3张手牌。</span>,
       // 想要使用的组合技
@@ -1091,6 +1091,9 @@ export default {
         this.selectedCardsNumber.push(item)
         this.selectedCardsIndex.push(index)
       }
+    },
+    confirmCards() {
+
     },
     // 回合结束时放一张弱点牌在牌堆顶
     endWithWeak() {
