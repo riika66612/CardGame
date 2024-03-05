@@ -239,6 +239,14 @@ public class CardController extends BaseController {
         drop.add(cardNumber);
     }
 
+    // 弃牌
+    @PostMapping("/drop/cards")
+    public void dropCards(@RequestBody List<String> cards) {
+        for (String card : cards) {
+            dropCard(card);
+        }
+    }
+
     // 放置弱点
     @PostMapping("/set")
     public void setCard(@RequestBody String cardNumber) {

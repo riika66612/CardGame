@@ -76,6 +76,15 @@ export function dropACard(cardNumber) {
   })
 }
 
+// 弃好多牌
+export function dropCards(cards) {
+  return request({
+    url: '/project/card/drop/cards',
+    method: 'post',
+    data: cards
+  })
+}
+
 // 放置一张牌到牌堆顶
 export function setACard(cardNumber) {
   return request({

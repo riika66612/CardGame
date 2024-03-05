@@ -338,7 +338,7 @@ public class WebSocketServer {
                 break;
             }
             case "7": {
-                if (receive.get("msgContent").getAsString().startsWith("Drop") || receive.get("msgContent").getAsString().startsWith("Set") || receive.get("msgContent").getAsString().startsWith("Use")) {
+                if (receive.get("msgContent").getAsString().startsWith("Drop") || receive.get("msgContent").getAsString().startsWith("Set")) {
                     // 如果是弃牌
                     // 当前玩家手牌数 -1
                     players.get(receive.get("msgFrom").getAsInt()).setHand(players.get(receive.get("msgFrom").getAsInt()).getHand() - 1);
@@ -346,6 +346,10 @@ public class WebSocketServer {
                     // 如果是抽牌
                     // 当前玩家手牌数 +1
                     players.get(receive.get("msgFrom").getAsInt()).setHand(players.get(receive.get("msgFrom").getAsInt()).getHand() + 1);
+                } else if (receive.get("msgContent").getAsString().startsWith("Use")) {
+                    // 如果是出牌
+                    // 当前玩家手牌数 -X (X为同时打出的牌的张数)
+                    players.get(receive.get("msgFrom").getAsInt()).setHand(players.get(receive.get("msgFrom").getAsInt()).getHand() - receive.get("msgExtra").getAsInt());
                 }
 
                 // 更新前台显示

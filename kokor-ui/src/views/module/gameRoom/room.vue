@@ -137,7 +137,7 @@
     </el-dialog>
 
     <!--选择施法目标-->
-    <el-dialog title="选择目标" :visible.sync="showTarget" @close="selectedUserIndex=-1">
+    <el-dialog title="选择目标" :visible.sync="showTarget" @close="resetSelect">
       <!--目标-->
       <div style="display: flex">
         <el-card :class="selectedUserIndex===index?'target-card selected':'target-card'"
@@ -268,8 +268,8 @@
         <div slot="header" class="clearfix">
           <span style="font-weight: bold">我是好人</span>
           <el-button style="float: right;margin-top: -1%" type="primary" size="mini"
-                     :disabled="!myTurn || wait || needDrop || comboUseable('100')"
-                     v-on:click="useCombo('100')">使用
+                     :disabled="!myTurn || wait || needDrop || comboUseable('100',handList)"
+                     v-on:click="selectCombo('100')">使用
           </el-button>
         </div>
 
@@ -290,8 +290,8 @@
         <div slot="header" class="clearfix">
           <span style="font-weight: bold">夺笋</span>
           <el-button style="float: right;margin-top: -1%" type="primary" size="mini"
-                     :disabled="!myTurn || wait || needDrop || comboUseable('101')"
-                     v-on:click="useCombo('101')">使用
+                     :disabled="!myTurn || wait || needDrop || comboUseable('101',handList)"
+                     v-on:click="selectCombo('101')">使用
           </el-button>
         </div>
 
@@ -312,8 +312,8 @@
         <div slot="header" class="clearfix">
           <span style="font-weight: bold">我是老六</span>
           <el-button style="float: right;margin-top: -1%" type="primary" size="mini"
-                     :disabled="!myTurn || wait || needDrop || comboUseable('102')"
-                     v-on:click="useCombo('102')">使用
+                     :disabled="!myTurn || wait || needDrop || comboUseable('102',handList)"
+                     v-on:click="selectCombo('102')">使用
           </el-button>
         </div>
 
@@ -333,8 +333,8 @@
         <div slot="header" class="clearfix">
           <span style="font-weight: bold">对子</span>
           <el-button style="float: right;margin-top: -1%" type="primary" size="mini"
-                     :disabled="!myTurn || wait || needDrop || comboUseable('103')"
-                     v-on:click="useCombo('103')">使用
+                     :disabled="!myTurn || wait || needDrop || comboUseable('103',handList)"
+                     v-on:click="selectCombo('103')">使用
           </el-button>
         </div>
 
@@ -354,8 +354,8 @@
         <div slot="header" class="clearfix">
           <span style="font-weight: bold">三条</span>
           <el-button style="float: right;margin-top: -1%" type="primary" size="mini"
-                     :disabled="!myTurn || wait || needDrop || comboUseable('104')"
-                     v-on:click="useCombo('104')">使用
+                     :disabled="!myTurn || wait || needDrop || comboUseable('104',handList)"
+                     v-on:click="selectCombo('104')">使用
           </el-button>
         </div>
 
@@ -441,6 +441,7 @@ import {
   creatInitialDeck,
   drawACard,
   dropACard,
+  dropCards,
   getCharacters,
   getInitialCard,
   setACard,
@@ -730,7 +731,11 @@ export default {
     confirmTarget() {
       // this.selectedUserName = this.userList[this.selectedUserIndex].userName
       this.showTarget = false
-      this.useCard()
+      if (this.selectedCombo === '') {
+        this.useCard()
+      } else {
+        this.useCombo()
+      }
     },
     // 使用卡牌
     useCard() {
@@ -741,10 +746,9 @@ export default {
         // 从手牌中将其移除
         this.handList.splice(this.selectedCardIndex, 1)
         // 更新全场手牌数显示
-        this.webSocket.send('{"msgType":"7","msgContent":"Use a Card","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+        this.webSocket.send('{"msgType":"7","msgContent":"Use a Card","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"1"}')
         // 询问全场是否使用“这不合理”
-        this.webSocket.send('{"msgType":"9","msgContent":' + this.selectedCardNumber + ',"msgExtra":' + this.selectedUserName +
-          ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+        this.webSocket.send('{"msgType":"9","msgContent":' + this.selectedCardNumber + ',"msgExtra":' + this.selectedUserName + ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
       })
     },
     // 弃牌
@@ -866,7 +870,7 @@ export default {
         // 将其删除
         this.handList.splice(index, 1)
         // 更新全场手牌数显示
-        this.webSocket.send('{"msgType":"7","msgContent":"Use a Card","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+        this.webSocket.send('{"msgType":"7","msgContent":"Use a Card","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"1"}')
         // 提醒全场自己使用了“这不合理”
         this.webSocket.send('{"msgType":"10","msgContent":"Not Ok","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
       })
@@ -950,8 +954,13 @@ export default {
     resetSelect() {
       this.selectedCardNumber = ''
       this.selectedCardIndex = -1
+
       this.selectedUserName = '好人'
       this.selectedUserIndex = -1
+
+      this.selectedCombo = ''
+      this.selectedCardsNumber = []
+      this.selectedCardsIndex = []
     },
     // 把风中改变顺序（添加）
     changeCardOrder(cardNumber) {
@@ -1041,38 +1050,38 @@ export default {
       103: 对子
       104: 三条
      */
-    comboUseable(number) {
+    comboUseable(number, list) {
       switch (number) {
         case "100":
-          return !(this.handList.includes("035") && (this.getCardCount("030") >= 2 || this.getCardCount("031") >= 2
-            || this.getCardCount("032") >= 2 || this.getCardCount("033") >= 2))
+          return !(list.includes("035") && (this.getCardCount("030", list) >= 2 || this.getCardCount("031", list) >= 2
+            || this.getCardCount("032", list) >= 2 || this.getCardCount("033", list) >= 2))
         case "101":
-          return !(this.handList.includes("034") && (this.getCardCount("030") >= 2 || this.getCardCount("031") >= 2
-            || this.getCardCount("032") >= 2 || this.getCardCount("033") >= 2));
+          return !(list.includes("034") && (this.getCardCount("030", list) >= 2 || this.getCardCount("031", list) >= 2
+            || this.getCardCount("032", list) >= 2 || this.getCardCount("033", list) >= 2));
         case "102":
-          return !(this.handList.includes("034") && this.handList.includes("035"))
+          return !(list.includes("034") && list.includes("035"))
         case "103":
-          return !(this.getCardCount("020") >= 2 || this.getCardCount("021") >= 2 || this.getCardCount("022") >= 2
-            || this.getCardCount("023") >= 2 || this.getCardCount("024") >= 2 || this.getCardCount("025") >= 2
-            || this.getCardCount("026") >= 2 || this.getCardCount("027") >= 2 || this.getCardCount("028") >= 2
-            || this.getCardCount("030") >= 2 || this.getCardCount("031") >= 2 || this.getCardCount("032") >= 2
-            || this.getCardCount("033") >= 2 || this.getCardCount("034") >= 2 || this.getCardCount("035") >= 2)
+          return !(this.getCardCount("020", list) >= 2 || this.getCardCount("021", list) >= 2 || this.getCardCount("022", list) >= 2
+            || this.getCardCount("023", list) >= 2 || this.getCardCount("024", list) >= 2 || this.getCardCount("025", list) >= 2
+            || this.getCardCount("026", list) >= 2 || this.getCardCount("027", list) >= 2 || this.getCardCount("028", list) >= 2
+            || this.getCardCount("030", list) >= 2 || this.getCardCount("031", list) >= 2 || this.getCardCount("032", list) >= 2
+            || this.getCardCount("033", list) >= 2 || this.getCardCount("034", list) >= 2 || this.getCardCount("035", list) >= 2)
         case "104":
-          return !(this.getCardCount("020") >= 3 || this.getCardCount("021") >= 3 || this.getCardCount("022") >= 3
-            || this.getCardCount("023") >= 3 || this.getCardCount("024") >= 3 || this.getCardCount("025") >= 3
-            || this.getCardCount("026") >= 3 || this.getCardCount("027") >= 3 || this.getCardCount("028") >= 3
-            || this.getCardCount("030") >= 3 || this.getCardCount("031") >= 3 || this.getCardCount("032") >= 3
-            || this.getCardCount("033") >= 3 || this.getCardCount("034") >= 3 || this.getCardCount("035") >= 3)
+          return !(this.getCardCount("020", list) >= 3 || this.getCardCount("021", list) >= 3 || this.getCardCount("022", list) >= 3
+            || this.getCardCount("023", list) >= 3 || this.getCardCount("024", list) >= 3 || this.getCardCount("025", list) >= 3
+            || this.getCardCount("026", list) >= 3 || this.getCardCount("027", list) >= 3 || this.getCardCount("028", list) >= 3
+            || this.getCardCount("030", list) >= 3 || this.getCardCount("031", list) >= 3 || this.getCardCount("032", list) >= 3
+            || this.getCardCount("033", list) >= 3 || this.getCardCount("034", list) >= 3 || this.getCardCount("035", list) >= 3)
       }
     },
     // 返回手牌中某张卡牌的张数
-    getCardCount(cardNumber) {
-      return this.handList.filter(function (card) {
+    getCardCount(cardNumber, list) {
+      return list.filter(function (card) {
         return card === cardNumber
       }).length
     },
-    // 使用组合技
-    useCombo(number) {
+    // 选择组合技
+    selectCombo(number) {
       this.selectedCombo = number
       this.showCombo = true
     },
@@ -1092,8 +1101,39 @@ export default {
         this.selectedCardsIndex.push(index)
       }
     },
+    // 确认使出组合技
     confirmCards() {
-
+      // 不可以使用
+      if (this.comboUseable(this.selectedCombo, this.selectedCardsNumber)) {
+        this.$modal.msgError("不符合使用条件")
+      } else {
+        // 可以使用
+        if (this.selectedCombo === "103" || this.selectedCombo === "104") {
+          this.selectedUserName = "好人"
+          this.showTarget = true
+        }
+        /*else if (this.selectedCombo === "102") {
+          this.selectedUserName = "自己"
+        }*/
+        else {
+          this.selectedUserName = "好人"
+          this.useCombo()
+        }
+      }
+    },
+    // 使用组合技
+    useCombo() {
+      // 进入等待状态
+      this.wait = true
+      // 将组合技选中的牌放入弃牌堆
+      dropCards(this.selectedCardsNumber).then(() => {
+        // 从手牌中将其移除
+        this.handList = this.handList.filter(item => !this.selectedCardsNumber.includes(item))
+        // 更新全场手牌数显示
+        this.webSocket.send('{"msgType":"7","msgContent":"Use a Card","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + (this.selectedCardsNumber.length) + '}')
+        // 询问全场是否使用“这不合理”
+        this.webSocket.send('{"msgType":"9","msgContent":' + this.selectedCardNumber + ',"msgExtra":' + this.selectedUserName + ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+      })
     },
     // 回合结束时放一张弱点牌在牌堆顶
     endWithWeak() {
