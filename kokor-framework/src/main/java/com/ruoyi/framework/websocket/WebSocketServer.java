@@ -386,9 +386,17 @@ public class WebSocketServer {
                 JsonObject sending = new JsonObject();
                 sending.addProperty("msgType", "9");
                 if (receive.get("msgExtra").getAsString().equals("好人")) {
-                    sending.addProperty("msgContent", userName + " 使用了一张牌");
+                    if (receive.get("msgContent").getAsString().startsWith("0")) {
+                        sending.addProperty("msgContent", userName + " 使用了一张牌");
+                    } else {
+                        sending.addProperty("msgContent", userName + " 使用了一个组合技");
+                    }
                 } else {
-                    sending.addProperty("msgContent", userName + " 对 " + receive.get("msgExtra").getAsString() + " 使用了一张牌");
+                    if (receive.get("msgContent").getAsString().startsWith("0")) {
+                        sending.addProperty("msgContent", userName + " 对 " + receive.get("msgExtra").getAsString() + " 使用了一张牌");
+                    } else {
+                        sending.addProperty("msgContent", userName + " 对 " + receive.get("msgExtra").getAsString() + " 使用了一个组合技");
+                    }
                 }
                 sending.addProperty("msgExtra", receive.get("msgContent").getAsString());
                 //sending.addProperty("msgTo", userNameList.get(nowTurn));

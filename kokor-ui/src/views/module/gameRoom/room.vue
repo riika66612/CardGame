@@ -137,7 +137,7 @@
     </el-dialog>
 
     <!--选择施法目标-->
-    <el-dialog title="选择目标" :visible.sync="showTarget" @close="resetSelect">
+    <el-dialog title="选择目标" :visible.sync="showTarget" :show-close="false" :close-on-click-modal="false">
       <!--目标-->
       <div style="display: flex">
         <el-card :class="selectedUserIndex===index?'target-card selected':'target-card'"
@@ -156,6 +156,7 @@
       <!--确认按钮-->
       <div slot="footer" class="dialog-footer">
         <el-button type="primary" :disabled="selectedUserIndex===-1" v-on:click="confirmTarget">确定</el-button>
+        <el-button type="" v-on:click="resetSelect">取消</el-button>
       </div>
     </el-dialog>
 
@@ -194,10 +195,44 @@
     <el-dialog title="用牌提醒" :visible.sync="cardUsed" :show-close="false" :close-on-click-modal="false">
       <div class="show-drop">
         <!--确认区-->
-        <div class="drop-confirm-zone">
+        <div :class="usedCardNumber.startsWith('1')?'drop-confirm-zone-combo':'drop-confirm-zone'">
           <el-card class="drop-confirm">
+            <!--无-->
             <img v-if="usedCardNumber===''" class="card-pic" :src="require('./pic/bg/bg_2.jpg')" alt="背景图片加载失败"/>
-            <img v-else class="card-pic" :src="require('./pic/card/'+usedCardNumber+'.jpg')" alt="背景图片加载失败"/>
+            <!--组合技1：我是好人-->
+            <div v-else-if="usedCardNumber==='100'">
+              <img class="combo-example" :src="require('./pic/card/035.jpg')" alt="示例加载失败"/>
+              <span class="combo-example-text">+</span>
+              <img class="combo-example" :src="require('./pic/card/031.jpg')" alt="示例加载失败"/>
+              <img class="combo-example" style="margin-left: -20%" :src="require('./pic/card/031.jpg')" alt="示例加载失败"/>
+            </div>
+            <!--组合技2：夺笋-->
+            <div v-else-if="usedCardNumber==='101'">
+              <img class="combo-example" :src="require('./pic/card/034.jpg')" alt="示例加载失败"/>
+              <span class="combo-example-text">+</span>
+              <img class="combo-example" :src="require('./pic/card/030.jpg')" alt="示例加载失败"/>
+              <img class="combo-example" style="margin-left: -20%" :src="require('./pic/card/030.jpg')" alt="示例加载失败"/>
+            </div>
+            <!--组合技3：我是老六-->
+            <div v-else-if="usedCardNumber==='102'">
+              <img class="combo-example" :src="require('./pic/card/035.jpg')" alt="加载失败"/>
+              <span class="combo-example-text">+</span>
+              <img class="combo-example" :src="require('./pic/card/034.jpg')" alt="加载失败"/>
+            </div>
+            <!--组合技4：对子-->
+            <div v-else-if="usedCardNumber==='103'">
+              <img class="combo-example" :src="require('./pic/card/032.jpg')" alt="加载失败"/>
+              <span class="combo-example-text">+</span>
+              <img class="combo-example" :src="require('./pic/card/032.jpg')" alt="加载失败"/>
+            </div>
+            <!--组合技5：三条-->
+            <div v-else-if="usedCardNumber==='104'">
+              <img class="combo-example" style="margin-right: 2%" :src="require('./pic/card/033.jpg')" alt="加载失败"/>
+              <img class="combo-example" style="margin-right: 2%" :src="require('./pic/card/033.jpg')" alt="加载失败"/>
+              <img class="combo-example" :src="require('./pic/card/033.jpg')" alt="加载失败"/>
+            </div>
+            <!--单张卡牌-->
+            <img v-else class="card-pic" :src="require('./pic/card/'+usedCardNumber+'.jpg')" alt="图片加载失败"/>
           </el-card>
         </div>
 
@@ -372,7 +407,7 @@
 
     <!--组合技选择手牌-->
     <el-dialog style="margin-top: -1%" title="选择手牌" :visible.sync="showCombo" width="70%" :show-close="false"
-               :close-on-click-modal="false" @close="selectedCombo=''">
+               :close-on-click-modal="false">
       <!--手牌-->
       <div style="display: inline-block;width: 100%">
         <el-card :class="selectedCardsIndex.includes(index)?'target-card-hand selected':'target-card-hand'"
@@ -385,6 +420,7 @@
       <!--确认按钮-->
       <div slot="footer" class="dialog-footer">
         <el-button type="primary" :disabled="selectedCardsIndex.length<2" v-on:click="confirmCards">确定</el-button>
+        <el-button type="" v-on:click="resetCombo">取消</el-button>
       </div>
     </el-dialog>
 
@@ -731,6 +767,8 @@ export default {
     confirmTarget() {
       // this.selectedUserName = this.userList[this.selectedUserIndex].userName
       this.showTarget = false
+      this.showCombo = false
+      this.drawer = false
       if (this.selectedCombo === '') {
         this.useCard()
       } else {
@@ -746,7 +784,7 @@ export default {
         // 从手牌中将其移除
         this.handList.splice(this.selectedCardIndex, 1)
         // 更新全场手牌数显示
-        this.webSocket.send('{"msgType":"7","msgContent":"Use a Card","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"1"}')
+        this.webSocket.send('{"msgType":"7","msgContent":"Use a Card","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":1}')
         // 询问全场是否使用“这不合理”
         this.webSocket.send('{"msgType":"9","msgContent":' + this.selectedCardNumber + ',"msgExtra":' + this.selectedUserName + ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
       })
@@ -870,7 +908,7 @@ export default {
         // 将其删除
         this.handList.splice(index, 1)
         // 更新全场手牌数显示
-        this.webSocket.send('{"msgType":"7","msgContent":"Use a Card","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"1"}')
+        this.webSocket.send('{"msgType":"7","msgContent":"Use a Card","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":1}')
         // 提醒全场自己使用了“这不合理”
         this.webSocket.send('{"msgType":"10","msgContent":"Not Ok","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
       })
@@ -884,7 +922,7 @@ export default {
       this.useMessage = ''
     },
     /*
-    卡牌生效
+    效果生效
       020: 把风
       021: 装睡
       022: 这不合理
@@ -894,60 +932,83 @@ export default {
       026: 反转
       027: 猜你想要
       028: 性情大变
+
+      100: 我是好人
+      101: 夺笋
+      102: 我是老六
+      103: 对子
+      104: 三条
       */
     cardEffect() {
       // 等待状态结束
       this.wait = false
-      switch (this.selectedCardNumber) {
-        case "020":
-          seeTopCards().then(res => {
-            this.topCards = res.rows
-            this.showTop = true
-          })
-          this.resetSelect()
-          break
-        case "021":
-          this.resetSelect()
-          // 直接回合结束
-          this.turnEnd()
-          break
-        case "022":
-          break
-        case "023":
-          // 将手牌发送出去
-          this.webSocket.send('{"msgType":"023","msgContent":"[' + this.handList.toString() + ']","msgTo":' + this.selectedUserName + '}')
-          this.resetSelect()
-          break
-        case "024":
-          // 清空自己需要抽的牌数
-          this.drawCardNumber = 0
-          // 掀下家被子
-          this.webSocket.send('{"msgType":"024","msgContent":"Lift the Quilt","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
-          this.resetSelect()
-          break
-        case "025":
-          // 洗牌
-          shuffleCards()
-          this.resetSelect()
-          break
-        case "026":
-          // 将回合顺序反转
-          this.webSocket.send('{"msgType":"026","msgContent":"Reversal","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
-          this.resetSelect()
-          break
-        case "027":
-          // 清空参数
-          this.selectedCardNumber = ''
-          this.selectedCardIndex = -1
-          // 打开弹窗
-          this.giveCard = true
-          break
-        case "028":
-          // 改变身份
-          this.webSocket.send('{"msgType":"028","msgContent":"Change Identity","msgExtra":' + this.selectedUserName +
-            ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
-          this.resetSelect()
-          break
+      if (this.selectedCardNumber !== '') {
+        switch (this.selectedCardNumber) {
+          case "020":
+            seeTopCards().then(res => {
+              this.topCards = res.rows
+              this.showTop = true
+            })
+            this.resetSelect()
+            break
+          case "021":
+            this.resetSelect()
+            // 直接回合结束
+            this.turnEnd()
+            break
+          case "022":
+            break
+          case "023":
+            // 将手牌发送出去
+            this.webSocket.send('{"msgType":"023","msgContent":"[' + this.handList.toString() + ']","msgTo":' + this.selectedUserName + '}')
+            this.resetSelect()
+            break
+          case "024":
+            // 清空自己需要抽的牌数
+            this.drawCardNumber = 0
+            // 掀下家被子
+            this.webSocket.send('{"msgType":"024","msgContent":"Lift the Quilt","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+            this.resetSelect()
+            break
+          case "025":
+            // 洗牌
+            shuffleCards()
+            this.resetSelect()
+            break
+          case "026":
+            // 将回合顺序反转
+            this.webSocket.send('{"msgType":"026","msgContent":"Reversal","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+            this.resetSelect()
+            break
+          case "027":
+            // 清空参数
+            this.selectedCardNumber = ''
+            this.selectedCardIndex = -1
+            // 打开弹窗
+            this.giveCard = true
+            break
+          case "028":
+            // 改变身份
+            this.webSocket.send('{"msgType":"028","msgContent":"Change Identity","msgExtra":' + this.selectedUserName +
+              ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+            this.resetSelect()
+            break
+        }
+      } else if (this.selectedCombo !== '') {
+        switch (this.selectedCombo) {
+          case "100":
+            break
+          case "101":
+            break
+          case "102":
+            break
+          case "103":
+            break
+          case "104":
+            break
+        }
+      } else {
+        this.$modal.msgError("bu~bu~出错啦!")
       }
     },
     // 重置参数（出牌）
@@ -958,9 +1019,10 @@ export default {
       this.selectedUserName = '好人'
       this.selectedUserIndex = -1
 
-      this.selectedCombo = ''
-      this.selectedCardsNumber = []
-      this.selectedCardsIndex = []
+      // this.selectedCombo = ''
+      // this.selectedCardsNumber = []
+      // this.selectedCardsIndex = []
+      this.showTarget = false
     },
     // 把风中改变顺序（添加）
     changeCardOrder(cardNumber) {
@@ -1065,13 +1127,15 @@ export default {
             || this.getCardCount("023", list) >= 2 || this.getCardCount("024", list) >= 2 || this.getCardCount("025", list) >= 2
             || this.getCardCount("026", list) >= 2 || this.getCardCount("027", list) >= 2 || this.getCardCount("028", list) >= 2
             || this.getCardCount("030", list) >= 2 || this.getCardCount("031", list) >= 2 || this.getCardCount("032", list) >= 2
-            || this.getCardCount("033", list) >= 2 || this.getCardCount("034", list) >= 2 || this.getCardCount("035", list) >= 2)
+            || this.getCardCount("033", list) >= 2 || this.getCardCount("034", list) >= 2 || this.getCardCount("035", list) >= 2
+            || this.getCardCount("000", list) >= 2 || this.getCardCount("001", list) >= 2)
         case "104":
           return !(this.getCardCount("020", list) >= 3 || this.getCardCount("021", list) >= 3 || this.getCardCount("022", list) >= 3
             || this.getCardCount("023", list) >= 3 || this.getCardCount("024", list) >= 3 || this.getCardCount("025", list) >= 3
             || this.getCardCount("026", list) >= 3 || this.getCardCount("027", list) >= 3 || this.getCardCount("028", list) >= 3
             || this.getCardCount("030", list) >= 3 || this.getCardCount("031", list) >= 3 || this.getCardCount("032", list) >= 3
-            || this.getCardCount("033", list) >= 3 || this.getCardCount("034", list) >= 3 || this.getCardCount("035", list) >= 3)
+            || this.getCardCount("033", list) >= 3 || this.getCardCount("034", list) >= 3 || this.getCardCount("035", list) >= 3
+            || this.getCardCount("000", list) >= 2 || this.getCardCount("001", list) >= 2)
       }
     },
     // 返回手牌中某张卡牌的张数
@@ -1089,7 +1153,7 @@ export default {
     selectSomeCards(item, index) {
       // 如果这张牌已经被选中，则取消选中，从数组中去除；未被选中，则放入数组中
       if (this.selectedCardsIndex.includes(index)) {
-        this.selectedCardsNumber.splice(index, 1)
+        this.selectedCardsNumber.splice(this.selectedCardsIndex.indexOf(index), 1)
         for (let i = 0; i < this.selectedCardsIndex.length; i++) {
           if (this.selectedCardsIndex[i] === index) {
             this.selectedCardsIndex.splice(i, 1)
@@ -1121,6 +1185,15 @@ export default {
         }
       }
     },
+    // 关闭组合技手牌选择弹窗
+    resetCombo() {
+      this.selectedCombo = ''
+      this.selectedCardsNumber = []
+      this.selectedCardsIndex = []
+
+      this.showCombo = false
+      this.drawer = false
+    },
     // 使用组合技
     useCombo() {
       // 进入等待状态
@@ -1130,9 +1203,9 @@ export default {
         // 从手牌中将其移除
         this.handList = this.handList.filter(item => !this.selectedCardsNumber.includes(item))
         // 更新全场手牌数显示
-        this.webSocket.send('{"msgType":"7","msgContent":"Use a Card","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + (this.selectedCardsNumber.length) + '}')
+        this.webSocket.send('{"msgType":"7","msgContent":"Use a Combo","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + (this.selectedCardsNumber.length) + '}')
         // 询问全场是否使用“这不合理”
-        this.webSocket.send('{"msgType":"9","msgContent":' + this.selectedCardNumber + ',"msgExtra":' + this.selectedUserName + ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+        this.webSocket.send('{"msgType":"9","msgContent":' + this.selectedCombo + ',"msgExtra":' + this.selectedUserName + ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
       })
     },
     // 回合结束时放一张弱点牌在牌堆顶
@@ -1616,6 +1689,10 @@ export default {
 
 .drop-pic {
   width: 100%;
+}
+
+.drop-confirm-zone-combo {
+  width: 32%;
 }
 
 .drop-confirm-zone {
