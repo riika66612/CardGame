@@ -200,11 +200,18 @@ public class WebSocketServer {
             11: 可继续放置弱点
             90: 身份抽取提醒（防异步）
             99: 游戏结束
+
             023: “拿来吧你”
             024: “掀被子”
             026: “反转”
             027: “猜你想要”
             028: “性情大变”
+
+            100: “我是好人”
+            101: “夺笋”
+            102: “我是老六”
+            103: “对子”
+            104: “三条”
         */
         switch (msgType) {
             case "0": {
@@ -541,6 +548,39 @@ public class WebSocketServer {
                 sending.addProperty("msgTo", "All Player");
                 sending.addProperty("msgExtra", players.toString());
                 WebSocketUsers.sendMessageToUsersByText(sending.toString());
+                break;
+            }
+            case "103": {
+                if (receive.get("msgExtra").getAsString().equals("Send")) {
+                    WebSocketUsers.sendMessageToOtherUserByText(receive.toString(), receive.get("msgTo").getAsString());
+                } else {
+                    // 送出卡牌的人手牌 -1
+                    players.get(receive.get("msgFrom").getAsInt()).setHand(players.get(receive.get("msgFrom").getAsInt()).getHand() - 1);
+                    // 收到卡牌的人手牌 +1
+                    players.get(receive.get("msgTo").getAsInt()).setHand(players.get(receive.get("msgTo").getAsInt()).getHand() + 1);
+
+                    // 更新前台显示（同时将卡牌送出）
+                    receive.addProperty("msgSub", players.toString());
+                    WebSocketUsers.sendMessageToUsersByText(receive.toString());
+                }
+                break;
+            }
+            case "104": {
+                if (receive.get("msgExtra").getAsString().equals("Send")) {
+                    WebSocketUsers.sendMessageToOtherUserByText(receive.toString(), receive.get("msgTo").getAsString());
+                } else {
+                    // 如果对方有索要的手牌，两人手牌发生变化
+                    if (receive.get("msgContent").getAsString().startsWith("0")) {
+                        // 送出卡牌的人手牌 -1
+                        players.get(receive.get("msgFrom").getAsInt()).setHand(players.get(receive.get("msgFrom").getAsInt()).getHand() - 1);
+                        // 收到卡牌的人手牌 +1
+                        players.get(receive.get("msgTo").getAsInt()).setHand(players.get(receive.get("msgTo").getAsInt()).getHand() + 1);
+                    }
+
+                    // 更新前台显示（同时将卡牌送出）
+                    receive.addProperty("msgSub", players.toString());
+                    WebSocketUsers.sendMessageToUsersByText(receive.toString());
+                }
                 break;
             }
         }

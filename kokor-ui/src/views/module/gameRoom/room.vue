@@ -196,7 +196,7 @@
       <div class="show-drop">
         <!--确认区-->
         <div :class="usedCardNumber.startsWith('1')?'drop-confirm-zone-combo':'drop-confirm-zone'">
-          <el-card class="drop-confirm">
+          <el-card class="drop-confirm" shadow="never">
             <!--无-->
             <img v-if="usedCardNumber===''" class="card-pic" :src="require('./pic/bg/bg_2.jpg')" alt="背景图片加载失败"/>
             <!--组合技1：我是好人-->
@@ -424,6 +424,33 @@
       </div>
     </el-dialog>
 
+    <!--“三条”指定卡牌-->
+    <el-dialog style="margin-top: -2%" title="指定卡牌" :visible.sync="showCards" width="60%" :show-close="false"
+               :close-on-click-modal="false">
+      <div class="show-drop">
+        <!--确认区-->
+        <div class="drop-confirm-zone">
+          <el-card class="drop-confirm">
+            <img v-if="cardIWant===''" class="card-pic" :src="require('./pic/bg/bg_2.jpg')" alt="背景图片加载失败"/>
+            <img v-else class="card-pic" :src="require('./pic/card/'+cardIWant+'.jpg')" alt="背景图片加载失败"/>
+          </el-card>
+        </div>
+
+        <!--卡片区-->
+        <div class="drop-cards">
+          <el-card :class="item===cardIWant?'one-drop-card selected':'one-drop-card'" v-for="(item,index) in cardList"
+                   :key="index" @click.prevent.native.stop="selectWantCard(item)">
+            <img class="drop-pic" :src="require('./pic/card/'+item+'.jpg')" :alt="item+'加载失败'"/>
+          </el-card>
+        </div>
+      </div>
+
+      <!--确认按钮-->
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" :disabled="cardIWant===''" v-on:click="confirmIWant">确定</el-button>
+      </div>
+    </el-dialog>
+
     <!--抓到雷-->
     <el-dialog title="出局警告" :visible.sync="getBoom" :show-close="false" :close-on-click-modal="false">
       <!--文本内容-->
@@ -636,6 +663,12 @@ export default {
       // 被选择的手牌们
       selectedCardsNumber: [],
       selectedCardsIndex: [],
+      // “三条”指定卡牌 弹窗控制
+      showCards: false,
+      // 所有卡牌的编号
+      cardList: ['000', '001', '002', '003', '010', '011', '012', '013', '020', '021', '022', '023', '024', '025', '026', '027', '028', '030', '031', '032', '033', '034', '035'],
+      // 选择的想要的卡
+      cardIWant: '',
     }
   },
   created() {
@@ -989,8 +1022,7 @@ export default {
             break
           case "028":
             // 改变身份
-            this.webSocket.send('{"msgType":"028","msgContent":"Change Identity","msgExtra":' + this.selectedUserName +
-              ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+            this.webSocket.send('{"msgType":"028","msgContent":"Change Identity","msgExtra":' + this.selectedUserName + ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
             this.resetSelect()
             break
         }
@@ -1003,8 +1035,12 @@ export default {
           case "102":
             break
           case "103":
+            this.webSocket.send('{"msgType":"103","msgContent":"Double","msgTo":' + this.selectedUserName + ',"msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"Send"}')
+            this.resetSelect()
+            this.resetCombo()
             break
           case "104":
+            this.showCards = true
             break
         }
       } else {
@@ -1135,7 +1171,7 @@ export default {
             || this.getCardCount("026", list) >= 3 || this.getCardCount("027", list) >= 3 || this.getCardCount("028", list) >= 3
             || this.getCardCount("030", list) >= 3 || this.getCardCount("031", list) >= 3 || this.getCardCount("032", list) >= 3
             || this.getCardCount("033", list) >= 3 || this.getCardCount("034", list) >= 3 || this.getCardCount("035", list) >= 3
-            || this.getCardCount("000", list) >= 2 || this.getCardCount("001", list) >= 2)
+            || this.getCardCount("000", list) >= 3 || this.getCardCount("001", list) >= 3)
       }
     },
     // 返回手牌中某张卡牌的张数
@@ -1185,11 +1221,13 @@ export default {
         }
       }
     },
-    // 关闭组合技手牌选择弹窗
+    // 重置组合技相关参数
     resetCombo() {
       this.selectedCombo = ''
       this.selectedCardsNumber = []
       this.selectedCardsIndex = []
+
+      this.cardIWant = ''
 
       this.showCombo = false
       this.drawer = false
@@ -1207,6 +1245,17 @@ export default {
         // 询问全场是否使用“这不合理”
         this.webSocket.send('{"msgType":"9","msgContent":' + this.selectedCombo + ',"msgExtra":' + this.selectedUserName + ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
       })
+    },
+    // 选择想要的卡
+    selectWantCard(number) {
+      this.cardIWant = number
+    },
+    // “三条”指定卡牌 生效
+    confirmIWant() {
+      this.showCards = false
+      this.webSocket.send('{"msgType":"104","msgContent":' + this.cardIWant + ',"msgTo":' + this.selectedUserName + ',"msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"Send"}')
+      this.resetSelect()
+      this.resetCombo()
     },
     // 回合结束时放一张弱点牌在牌堆顶
     endWithWeak() {
@@ -1339,11 +1388,18 @@ export default {
       90: 轮流抽取身份
       91: 轮流抽取手牌
       99: 游戏结束
+
       023: “拿来吧你”
       024: “掀被子”
       026: “反转”
       027: “猜你想要”
       028: “性情大变”
+
+      100: “我是好人”
+      101: “夺笋”
+      102: “我是老六”
+      103: “对子”
+      104: “三条”
       */
     wsMessageHanler(e) {
       // console.log(e.data)
@@ -1415,7 +1471,7 @@ export default {
           break
         case '6':
           this.$modal.msgError(msg.msgContent)
-          this.userList = msg.msgContent.substring(1, msg.msgContent.length - 1).split(', ')
+          this.userList = msg.msgExtra.substring(1, msg.msgExtra.length - 1).split(', ')
           for (let i = 0; i < this.userList.length; i++) {
             this.userList[i] = JSON.parse(this.userList[i])
             if (this.userList[i].userName === this.$store.state.user.name) {
@@ -1516,6 +1572,37 @@ export default {
               this.subIdentity = this.userList[i].subIdentity
             }
           }
+          break
+        case '103':
+          if (msg.msgExtra === 'Send') {
+            // 交出卡牌的一方
+            // 生成一个基于时间的随机数
+            let now = new Date()
+            let randomIndex = now.getSeconds() % this.handList.length
+            // 将随机的卡牌取出
+            let card = this.handList[randomIndex]
+            console.log(card)
+            // 将该卡牌从手牌中去除
+            this.handList.splice(randomIndex, 1)
+            // 将这张手牌发送出去
+            this.webSocket.send('{"msgType":"103","msgContent":' + card + ',"msgTo":' + msg.msgFrom + ',"msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"Receive"}')
+          } else if (msg.msgExtra === 'Receive') {
+            // 接收卡牌的一方
+            // 所有玩家更新前台手牌数显示
+            this.userList = msg.msgSub.substring(1, msg.msgSub.length - 1).split(', ')
+            for (let i = 0; i < this.userList.length; i++) {
+              this.userList[i] = JSON.parse(this.userList[i])
+            }
+            // 将卡牌放入手牌中
+            if (this.currentUserNumber - 1 === msg.msgTo) {
+              this.handList.push(msg.msgContent)
+              // 进行死亡判断
+              this.confirmSurvival()
+            }
+          }
+          break
+        case '104':
+
           break
       }
     },
@@ -1692,7 +1779,7 @@ export default {
 }
 
 .drop-confirm-zone-combo {
-  width: 32%;
+  width: 42%;
 }
 
 .drop-confirm-zone {
@@ -1700,6 +1787,8 @@ export default {
 }
 
 .drop-confirm {
+  border: 0;
+
   ::v-deep .el-card__body {
     padding: 0;
   }
