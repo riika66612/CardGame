@@ -232,12 +232,14 @@ public class WebSocketServer {
                 start.addProperty("msgType", "1");
                 start.addProperty("msgContent", "Game Start");
                 start.addProperty("msgTo", "All Player");
+                start.addProperty("msgExtra", receive.get("msgExtra").getAsInt());
                 WebSocketUsers.sendMessageToUsersByText(start.toString());
 
                 JsonObject sending = new JsonObject();
                 sending.addProperty("msgType", "90");
                 sending.addProperty("msgContent", "Game Start");
                 sending.addProperty("msgTo", 1);
+                sending.addProperty("msgExtra", receive.get("msgExtra").getAsInt());
                 WebSocketUsers.sendMessageToOtherUserByText(sending.toString(), userNameList.get(0));
                 break;
             }

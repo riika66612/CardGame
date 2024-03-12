@@ -3,11 +3,29 @@
     <!--按钮行-->
     <div>
       <el-button class="back-button" icon="el-icon-d-arrow-left" size="mini" v-on:click="returnBack">退出</el-button>
-      <span class="tips" v-if="start">手牌上限为：<span style="font-weight: bold">{{ handLimit }}</span></span>
+      <span class="tips">手牌上限为：<span style="font-weight: bold">{{ handLimit }}</span></span>
+      <el-button class="setting-button" icon="el-icon-setting" type="success" v-show="currentUserNumber===1 && !start"
+                 v-on:click="showSetting = true">高级设置
+      </el-button>
       <el-button class="start-button" icon="el-icon-coordinate" type="primary" v-show="currentUserNumber===1 && !start"
                  :disabled="userList.length<2" v-on:click="startGame">开始游戏
       </el-button>
     </div>
+
+    <!--高级设置 弹窗-->
+    <el-dialog title="高级设置" :visible.sync="showSetting" :show-close="false" :close-on-click-modal="false">
+      <el-form ref="settings" :model="settingForm" label-width="100px" :rules="rules">
+        <!--手牌上限-->
+        <el-form-item label="手牌上限：" prop="limit">
+          <el-input v-model.number="settingForm.limit" placeholder="请输入1到12之间的数字"/>
+        </el-form-item>
+      </el-form>
+
+      <!--确认按钮-->
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" v-on:click="closeSetting">确定</el-button>
+      </div>
+    </el-dialog>
 
     <!--主要区域-->
     <div class="main-room" v-on:click="closeOperate">
@@ -548,6 +566,15 @@ import {getIpAddr} from "@/api/project/ipAddr"
 export default {
   name: "room",
   data() {
+    var checkLimit = (rule, value, callback) => {
+      if (!value) {
+        return callback(new Error('上限不能为空'));
+      }
+      if (!Number.isInteger(value)) {
+        callback(new Error('请输入数字值'));
+      }
+      callback()
+    }
     return {
       // 服务端ip
       serverIp: '127.0.0.1',
@@ -571,6 +598,18 @@ export default {
       deck: 0,
       // 手牌上限
       handLimit: 8,
+      // 高级设置 弹窗控制
+      showSetting: false,
+      // 设置表单
+      settingForm: {
+        limit: 8,
+      },
+      // 表单校验
+      rules: {
+        limit: [
+          {required: true, validator: checkLimit, trigger: "blur"}
+        ]
+      },
       // 手牌
       handList: [],
       // 抽取到的两张身份
@@ -728,12 +767,25 @@ export default {
 
       })
     },
+    // 关闭设置弹窗
+    closeSetting() {
+      this.$refs["settings"].validate(valid => {
+        if (valid) {
+          if (this.settingForm.limit < 1 || this.settingForm.limit > 12) {
+            this.$modal.msgError("请将手牌上限设置到1到12之间的数字")
+          } else {
+            this.handLimit = this.settingForm.limit
+            this.showSetting = false
+          }
+        }
+      })
+    },
     // 游戏开始
     startGame() {
       // console.log("游戏开始")
       this.start = true
       createCharacters().then(() => {
-        this.webSocket.send('{"msgType":"1","msgContent":"Start Game","msgTo":"System"}')
+        this.webSocket.send('{"msgType":"1","msgContent":"Start Game","msgTo":"System","msgExtra":' + this.handLimit + '}')
       })
       creatInitialDeck()
     },
@@ -1541,6 +1593,7 @@ export default {
           // console.log(this.userList)
           break
         case '1':
+          this.handLimit = msg.msgExtra
           this.$modal.msgSuccess("游戏开始")
           this.start = true
           break
@@ -1830,6 +1883,12 @@ export default {
 
 .back-button {
   margin: 0.5% 0 0 0.5%;
+}
+
+.setting-button {
+  position: absolute;
+  margin: 0.3% 0.5% 0 0;
+  right: 7%;
 }
 
 .start-button {
