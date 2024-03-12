@@ -194,7 +194,7 @@ public class CardController extends BaseController {
     @GetMapping("/deal")
     public String dealCard() {
         // 抽1张牌
-        //return "024";
+        //return "023";
         return deck.remove(deck.size() - 1);
     }
 

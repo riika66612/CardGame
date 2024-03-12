@@ -480,6 +480,7 @@ public class WebSocketServer {
                 break;
             }
             case "023": {
+                // 交换手牌
                 //LOGGER.info(receive.get("msgContent").getAsString());
                 JsonObject sending = new JsonObject();
                 sending.addProperty("msgType", "023");
@@ -487,6 +488,21 @@ public class WebSocketServer {
                 sending.addProperty("msgTo", receive.get("msgTo").getAsString());
                 sending.addProperty("msgFrom", userName);
                 WebSocketUsers.sendMessageToOtherUserByText(sending.toString(), receive.get("msgTo").getAsString());
+
+                if (receive.get("msgExtra").getAsString().equals("0")) {
+                    int handFrom = players.get(userNameList.indexOf(userName)).getHand();
+                    int handTo = players.get(userNameList.indexOf(receive.get("msgTo").getAsString())).getHand();
+                    // 更新手牌数量
+                    players.get(userNameList.indexOf(userName)).setHand(handTo);
+                    players.get(userNameList.indexOf(receive.get("msgTo").getAsString())).setHand(handFrom);
+                    // 更新前台显示
+                    JsonObject subSending = new JsonObject();
+                    subSending.addProperty("msgType", "7");
+                    subSending.addProperty("msgContent", "Hand Change");
+                    subSending.addProperty("msgTo", "All Player");
+                    subSending.addProperty("msgExtra", players.toString());
+                    WebSocketUsers.sendMessageToUsersByText(subSending.toString());
+                }
                 break;
             }
             case "024": {
@@ -522,12 +538,26 @@ public class WebSocketServer {
                 break;
             }
             case "027": {
+                // 发送手牌
                 JsonObject sending = new JsonObject();
                 sending.addProperty("msgType", "027");
                 sending.addProperty("msgContent", receive.get("msgContent").getAsString());
                 sending.addProperty("msgTo", receive.get("msgTo").getAsString());
                 sending.addProperty("msgFrom", userName);
                 WebSocketUsers.sendMessageToOtherUserByText(sending.toString(), receive.get("msgTo").getAsString());
+
+                // 更新手牌数量
+                // 送出卡牌的人手牌 -1
+                players.get(userNameList.indexOf(userName)).setHand(players.get(userNameList.indexOf(userName)).getHand() - 1);
+                // 收到卡牌的人手牌 +1
+                players.get(userNameList.indexOf(receive.get("msgTo").getAsString())).setHand(players.get(userNameList.indexOf(receive.get("msgTo").getAsString())).getHand() + 1);
+                // 更新前台显示
+                JsonObject subSending = new JsonObject();
+                subSending.addProperty("msgType", "7");
+                subSending.addProperty("msgContent", "Hand Change");
+                subSending.addProperty("msgTo", "All Player");
+                subSending.addProperty("msgExtra", players.toString());
+                WebSocketUsers.sendMessageToUsersByText(subSending.toString());
                 break;
             }
             case "028": {

@@ -63,7 +63,7 @@
         </div>
 
         <!--手牌区-->
-        <div class="hand-zone">
+        <div class="hand-zone" v-if="handList.length>0">
           <el-card class="hand-card" :style="handList.length>=9?'marginRight:-3%':'marginRight:1%'"
                    v-for="(item,index) in handList" :key="index"
                    @click.stop.prevent.native="operateCard($event,item,index)">
@@ -699,7 +699,7 @@ export default {
       // “我是老六”选择卡牌 控制
       seeDrop: false,
       // 想要卡牌的索引
-      cardIndexIWant: '',
+      cardIndexIWant: ''
     }
   },
   created() {
@@ -753,9 +753,11 @@ export default {
     },
     // 选择手牌
     operateCard(event, number, index) {
-      // 所选择的手牌
-      this.selectedCardNumber = number
-      this.selectedCardIndex = index
+      if ((this.wait && this.needDrop) || !this.wait) {
+        // 所选择的手牌
+        this.selectedCardNumber = number
+        this.selectedCardIndex = index
+      }
 
       // this.showOperate = false
       if (this.myTurn) {
@@ -986,6 +988,8 @@ export default {
       this.cardUsed = false
       this.usedCardNumber = ''
       this.useMessage = ''
+
+      this.resetParam()
     },
     /*
     效果生效
@@ -1026,7 +1030,7 @@ export default {
             break
           case "023":
             // 将手牌发送出去
-            this.webSocket.send('{"msgType":"023","msgContent":"[' + this.handList.toString() + ']","msgTo":' + this.selectedUserName + '}')
+            this.webSocket.send('{"msgType":"023","msgContent":"[' + this.handList.toString() + ']","msgTo":' + this.selectedUserName + ',"msgExtra":"0"}')
             this.resetSelect()
             break
           case "024":
@@ -1204,30 +1208,62 @@ export default {
       103: 对子
       104: 三条
      */
-    comboUseable(number, list) {
+    comboUseable(number, list, use = false) {
       switch (number) {
         case "100":
-          return !(list.includes("035") && (this.getCardCount("030", list) >= 2 || this.getCardCount("031", list) >= 2
-            || this.getCardCount("032", list) >= 2 || this.getCardCount("033", list) >= 2))
+          if (use) {
+            return !(list.includes("035") && (this.getCardCount("030", list) === 2 || this.getCardCount("031", list) === 2
+              || this.getCardCount("032", list) === 2 || this.getCardCount("033", list) === 2) && list.length === 3)
+          } else {
+            return !(list.includes("035") && (this.getCardCount("030", list) >= 2 || this.getCardCount("031", list) >= 2
+              || this.getCardCount("032", list) >= 2 || this.getCardCount("033", list) >= 2))
+          }
         case "101":
-          return !(list.includes("034") && (this.getCardCount("030", list) >= 2 || this.getCardCount("031", list) >= 2
-            || this.getCardCount("032", list) >= 2 || this.getCardCount("033", list) >= 2));
+          if (use) {
+            return !(list.includes("034") && (this.getCardCount("030", list) === 2 || this.getCardCount("031", list) === 2
+              || this.getCardCount("032", list) === 2 || this.getCardCount("033", list) === 2) && list.length === 3)
+          } else {
+            return !(list.includes("034") && (this.getCardCount("030", list) >= 2 || this.getCardCount("031", list) >= 2
+              || this.getCardCount("032", list) >= 2 || this.getCardCount("033", list) >= 2));
+          }
         case "102":
-          return !(list.includes("034") && list.includes("035"))
+          if (use) {
+            return !(list.includes("034") && list.includes("035") && list.length === 2)
+          } else {
+            return !(list.includes("034") && list.includes("035"))
+          }
         case "103":
-          return !(this.getCardCount("020", list) >= 2 || this.getCardCount("021", list) >= 2 || this.getCardCount("022", list) >= 2
-            || this.getCardCount("023", list) >= 2 || this.getCardCount("024", list) >= 2 || this.getCardCount("025", list) >= 2
-            || this.getCardCount("026", list) >= 2 || this.getCardCount("027", list) >= 2 || this.getCardCount("028", list) >= 2
-            || this.getCardCount("030", list) >= 2 || this.getCardCount("031", list) >= 2 || this.getCardCount("032", list) >= 2
-            || this.getCardCount("033", list) >= 2 || this.getCardCount("034", list) >= 2 || this.getCardCount("035", list) >= 2
-            || this.getCardCount("000", list) >= 2 || this.getCardCount("001", list) >= 2)
+          if (use) {
+            return !((this.getCardCount("020", list) === 2 || this.getCardCount("021", list) === 2 || this.getCardCount("022", list) === 2
+              || this.getCardCount("023", list) === 2 || this.getCardCount("024", list) === 2 || this.getCardCount("025", list) === 2
+              || this.getCardCount("026", list) === 2 || this.getCardCount("027", list) === 2 || this.getCardCount("028", list) === 2
+              || this.getCardCount("030", list) === 2 || this.getCardCount("031", list) === 2 || this.getCardCount("032", list) === 2
+              || this.getCardCount("033", list) === 2 || this.getCardCount("034", list) === 2 || this.getCardCount("035", list) === 2
+              || this.getCardCount("000", list) === 2 || this.getCardCount("001", list) === 2) && list.length === 2)
+          } else {
+            return !(this.getCardCount("020", list) >= 2 || this.getCardCount("021", list) >= 2 || this.getCardCount("022", list) >= 2
+              || this.getCardCount("023", list) >= 2 || this.getCardCount("024", list) >= 2 || this.getCardCount("025", list) >= 2
+              || this.getCardCount("026", list) >= 2 || this.getCardCount("027", list) >= 2 || this.getCardCount("028", list) >= 2
+              || this.getCardCount("030", list) >= 2 || this.getCardCount("031", list) >= 2 || this.getCardCount("032", list) >= 2
+              || this.getCardCount("033", list) >= 2 || this.getCardCount("034", list) >= 2 || this.getCardCount("035", list) >= 2
+              || this.getCardCount("000", list) >= 2 || this.getCardCount("001", list) >= 2)
+          }
         case "104":
-          return !(this.getCardCount("020", list) >= 3 || this.getCardCount("021", list) >= 3 || this.getCardCount("022", list) >= 3
-            || this.getCardCount("023", list) >= 3 || this.getCardCount("024", list) >= 3 || this.getCardCount("025", list) >= 3
-            || this.getCardCount("026", list) >= 3 || this.getCardCount("027", list) >= 3 || this.getCardCount("028", list) >= 3
-            || this.getCardCount("030", list) >= 3 || this.getCardCount("031", list) >= 3 || this.getCardCount("032", list) >= 3
-            || this.getCardCount("033", list) >= 3 || this.getCardCount("034", list) >= 3 || this.getCardCount("035", list) >= 3
-            || this.getCardCount("000", list) >= 3 || this.getCardCount("001", list) >= 3)
+          if (use) {
+            return !(this.getCardCount("020", list) === 3 || this.getCardCount("021", list) === 3 || this.getCardCount("022", list) === 3
+              || this.getCardCount("023", list) === 3 || this.getCardCount("024", list) === 3 || this.getCardCount("025", list) === 3
+              || this.getCardCount("026", list) === 3 || this.getCardCount("027", list) === 3 || this.getCardCount("028", list) === 3
+              || this.getCardCount("030", list) === 3 || this.getCardCount("031", list) === 3 || this.getCardCount("032", list) === 3
+              || this.getCardCount("033", list) === 3 || this.getCardCount("034", list) === 3 || this.getCardCount("035", list) === 3
+              || this.getCardCount("000", list) === 3 || this.getCardCount("001", list) === 3 && list.length === 3)
+          } else {
+            return !(this.getCardCount("020", list) >= 3 || this.getCardCount("021", list) >= 3 || this.getCardCount("022", list) >= 3
+              || this.getCardCount("023", list) >= 3 || this.getCardCount("024", list) >= 3 || this.getCardCount("025", list) >= 3
+              || this.getCardCount("026", list) >= 3 || this.getCardCount("027", list) >= 3 || this.getCardCount("028", list) >= 3
+              || this.getCardCount("030", list) >= 3 || this.getCardCount("031", list) >= 3 || this.getCardCount("032", list) >= 3
+              || this.getCardCount("033", list) >= 3 || this.getCardCount("034", list) >= 3 || this.getCardCount("035", list) >= 3
+              || this.getCardCount("000", list) >= 3 || this.getCardCount("001", list) >= 3)
+          }
       }
     },
     // 返回手牌中某张卡牌的张数
@@ -1259,13 +1295,16 @@ export default {
     },
     // 确认使出组合技
     confirmCards() {
-      this.showCombo = false
-      this.drawer = false
-      // 不可以使用
-      if (this.comboUseable(this.selectedCombo, this.selectedCardsNumber)) {
+      // 判断能否使用
+      if (this.comboUseable(this.selectedCombo, this.selectedCardsNumber, true)) {
+        // 不可以使用
         this.$modal.msgError("不符合使用条件")
       } else {
         // 可以使用
+        // 关闭弹窗
+        this.showCombo = false
+        this.drawer = false
+
         if (this.selectedCombo === "103" || this.selectedCombo === "104") {
           this.selectedUserName = "好人"
           this.showTarget = true
@@ -1297,7 +1336,11 @@ export default {
       // 将组合技选中的牌放入弃牌堆
       dropCards(this.selectedCardsNumber).then(() => {
         // 从手牌中将其移除
-        this.handList = this.handList.filter(item => !this.selectedCardsNumber.includes(item))
+        // this.handList = this.handList.filter(item => !this.selectedCardsNumber.includes(item))
+        this.selectedCardsIndex.sort()
+        for (let i = this.selectedCardsIndex.length - 1; i >= 0; i--) {
+          this.handList.splice(this.selectedCardsIndex[i], 1)
+        }
         // 更新全场手牌数显示
         this.webSocket.send('{"msgType":"7","msgContent":"Use a Combo","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + (this.selectedCardsNumber.length) + '}')
         // 询问全场是否使用“这不合理”
@@ -1612,10 +1655,14 @@ export default {
           const hand = this.handList
           // 替换成新手牌
           this.handList = msg.msgContent.substring(1, msg.msgContent.length - 1).split(',')
+          // 若对方手牌为空
+          if (this.handList === '') {
+            this.handList = []
+          }
           // 自己是被替换的那一方
           if (!this.myTurn) {
             // 将自己的手牌发给对面
-            this.webSocket.send('{"msgType":"023","msgContent":"[' + hand.toString() + ']","msgTo":' + msg.msgFrom + '}')
+            this.webSocket.send('{"msgType":"023","msgContent":"[' + hand.toString() + ']","msgTo":' + msg.msgFrom + ',"msgExtra":"1"}')
           }
 
           // 判断有没有坑
