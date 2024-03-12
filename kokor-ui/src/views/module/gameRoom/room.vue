@@ -142,7 +142,7 @@
       <div style="display: flex">
         <el-card :class="selectedUserIndex===index?'target-card selected':'target-card'"
                  v-for="(item,index) in userList" :key="index"
-                 v-if="item.live && !item.turn && ((selectedCardNumber==='028'&&item.subIdentity!==0) || selectedCardNumber!=='028')"
+                 v-if="item.live && !item.turn && ((selectedCardNumber==='028'&&item.subIdentity!==0) || selectedCardNumber!=='028') && ((selectedCombo!=='103'&&selectedCombo!=='104')||((selectedCombo==='103'||selectedCombo==='104')&&item.hand>0))"
                  @click.prevent.native.stop="selectUserTarget(item.userName,index)">
           <div slot="header" class="clearfix">
             <span>{{ item.userName }}</span>
@@ -424,6 +424,32 @@
       </div>
     </el-dialog>
 
+    <!--“我是老六”选牌-->
+    <el-dialog title="选择你想要的牌" :visible.sync="seeDrop" width="80%" :show-close="false" :close-on-click-modal="false">
+      <div class="show-drop">
+        <!--确认区-->
+        <div class="drop-confirm-zone">
+          <el-card class="drop-confirm">
+            <img v-if="cardIndexIWant===''" class="card-pic" :src="require('./pic/bg/bg_2.jpg')" alt="背景图片加载失败"/>
+            <img v-else class="card-pic" :src="require('./pic/card/'+dropList[cardIndexIWant]+'.jpg')" alt="背景图片加载失败"/>
+          </el-card>
+        </div>
+
+        <!--卡片区-->
+        <div class="drop-cards">
+          <el-card :class="index===cardIndexIWant?'one-drop-card selected':'one-drop-card'"
+                   v-for="(item,index) in dropList" :key="index" @click.prevent.native.stop="selectIndexWant(index)">
+            <img class="drop-pic" :src="require('./pic/card/'+item+'.jpg')" :alt="item+'加载失败'"/>
+          </el-card>
+        </div>
+      </div>
+
+      <!--确认按钮-->
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" :disabled="cardIndexIWant===''" v-on:click="confirmIWantFromDrop">确定</el-button>
+      </div>
+    </el-dialog>
+
     <!--“三条”指定卡牌-->
     <el-dialog style="margin-top: -2%" title="指定卡牌" :visible.sync="showCards" width="60%" :show-close="false"
                :close-on-click-modal="false">
@@ -515,6 +541,7 @@ import {
   seeTopCards,
   endSeeTopCards,
   shuffleCards,
+  getCardFromDrop,
 } from "@/api/project/card"
 import {getIpAddr} from "@/api/project/ipAddr"
 
@@ -669,6 +696,10 @@ export default {
       cardList: ['000', '001', '002', '003', '010', '011', '012', '013', '020', '021', '022', '023', '024', '025', '026', '027', '028', '030', '031', '032', '033', '034', '035'],
       // 选择的想要的卡
       cardIWant: '',
+      // “我是老六”选择卡牌 控制
+      seeDrop: false,
+      // 想要卡牌的索引
+      cardIndexIWant: '',
     }
   },
   created() {
@@ -1033,6 +1064,10 @@ export default {
           case "101":
             break
           case "102":
+            showDroppedCards().then(res => {
+              this.dropList = res.rows
+              this.seeDrop = true
+            })
             break
           case "103":
             this.webSocket.send('{"msgType":"103","msgContent":"Double","msgTo":' + this.selectedUserName + ',"msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"Send"}')
@@ -1203,6 +1238,8 @@ export default {
     },
     // 确认使出组合技
     confirmCards() {
+      this.showCombo = false
+      this.drawer = false
       // 不可以使用
       if (this.comboUseable(this.selectedCombo, this.selectedCardsNumber)) {
         this.$modal.msgError("不符合使用条件")
@@ -1245,6 +1282,23 @@ export default {
         // 询问全场是否使用“这不合理”
         this.webSocket.send('{"msgType":"9","msgContent":' + this.selectedCombo + ',"msgExtra":' + this.selectedUserName + ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
       })
+    },
+    // 选择想要的卡牌的索引
+    selectIndexWant(index) {
+      this.cardIndexIWant = index
+    },
+    // “我是老六”指定卡牌 生效
+    confirmIWantFromDrop() {
+      this.seeDrop = false
+      getCardFromDrop(this.cardIndexIWant).then(() => {
+        this.handList.push(this.dropList[this.cardIndexIWant])
+        this.cardIndexIWant = ''
+        // 更新全场手牌数显示
+        this.webSocket.send('{"msgType":"7","msgContent":"Draw A Card From Dropzone","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+        this.resetSelect()
+        this.resetCombo()
+      })
+
     },
     // 选择想要的卡
     selectWantCard(number) {
@@ -1362,6 +1416,7 @@ export default {
       msgExtra: 额外内容
       msgTo: 消息接收对象
       msgFrom: 消息发送人
+      msgSub: 多出的内容
      */
     subSend() {
       this.webSocket.send("11111")

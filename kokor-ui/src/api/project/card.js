@@ -134,3 +134,12 @@ export function shuffleCards() {
     method: 'post'
   })
 }
+
+// 使用 102 组合技：我是老六
+export function getCardFromDrop(index) {
+  return request({
+    url: '/project/card/use/combo/six',
+    method: 'post',
+    data: index
+  })
+}

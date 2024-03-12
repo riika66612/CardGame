@@ -291,4 +291,11 @@ public class CardController extends BaseController {
         Collections.shuffle(deck);
         Collections.shuffle(deck);
     }
+
+    // 102 我是老六
+    @PostMapping("/use/combo/six")
+    public void getCardFromDrop(@RequestBody Integer index) {
+        int idx = (int) index;
+        drop.remove(idx);
+    }
 }
