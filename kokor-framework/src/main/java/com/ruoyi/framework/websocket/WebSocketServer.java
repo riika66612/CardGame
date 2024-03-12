@@ -209,7 +209,6 @@ public class WebSocketServer {
 
             100: “我是好人”
             101: “夺笋”
-            102: “我是老六”
             103: “对子”
             104: “三条”
         */
@@ -548,6 +547,11 @@ public class WebSocketServer {
                 sending.addProperty("msgTo", "All Player");
                 sending.addProperty("msgExtra", players.toString());
                 WebSocketUsers.sendMessageToUsersByText(sending.toString());
+                break;
+            }
+            case "101": {
+                // 转发给所有玩家
+                WebSocketUsers.sendMessageToUsersByText(receive.toString());
                 break;
             }
             case "103": {

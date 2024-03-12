@@ -156,7 +156,7 @@
       <!--确认按钮-->
       <div slot="footer" class="dialog-footer">
         <el-button type="primary" :disabled="selectedUserIndex===-1" v-on:click="confirmTarget">确定</el-button>
-        <el-button type="" v-on:click="resetSelect">取消</el-button>
+        <el-button type="" v-on:click="resetParam">取消</el-button>
       </div>
     </el-dialog>
 
@@ -627,7 +627,7 @@ export default {
       killBy: '',
       // 是否抓到宿管或弱点
       getBoom: false,
-      // 抓到宿管或弱点的时机 '0':回合中；'1':回合结束时
+      // 抓到宿管或弱点的时机 '0':回合中；'1':回合结束时；'2':回合外
       boomTime: '0',
       // 正常游戏出局
       beKilled: false,
@@ -800,11 +800,13 @@ export default {
     },
     // 查看身份
     showIdentity(id) {
-      if (id === 0) {
-        this.$modal.msg("你已经没有隐藏身份啦")
-      } else {
-        this.id = id
-        this.showId = true
+      if (this.start) {
+        if (id === 0) {
+          this.$modal.msg("你已经没有隐藏身份啦")
+        } else {
+          this.id = id
+          this.showId = true
+        }
       }
     },
     // 查看弃牌区大图
@@ -1062,6 +1064,21 @@ export default {
           case "100":
             break
           case "101":
+            // 确认要击毙的阵营
+            if (this.selectedCardsNumber.includes("030")) {
+              // 发送消息
+              this.webSocket.send('{"msgType":"101","msgContent":0,"msgTo":"All Players","msgFrom":' + (this.currentUserNumber - 1) + '}')
+            } else if (this.selectedCardsNumber.includes("031")) {
+              // 发送消息
+              this.webSocket.send('{"msgType":"101","msgContent":1,"msgTo":"All Players","msgFrom":' + (this.currentUserNumber - 1) + '}')
+            } else if (this.selectedCardsNumber.includes("032")) {
+              // 发送消息
+              this.webSocket.send('{"msgType":"101","msgContent":2,"msgTo":"All Players","msgFrom":' + (this.currentUserNumber - 1) + '}')
+            } else if (this.selectedCardsNumber.includes("033")) {
+              // 发送消息
+              this.webSocket.send('{"msgType":"101","msgContent":3,"msgTo":"All Players","msgFrom":' + (this.currentUserNumber - 1) + '}')
+            }
+            this.resetParam()
             break
           case "102":
             showDroppedCards().then(res => {
@@ -1071,8 +1088,7 @@ export default {
             break
           case "103":
             this.webSocket.send('{"msgType":"103","msgContent":"Double","msgTo":' + this.selectedUserName + ',"msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"Send"}')
-            this.resetSelect()
-            this.resetCombo()
+            this.resetParam()
             break
           case "104":
             this.showCards = true
@@ -1081,6 +1097,11 @@ export default {
       } else {
         this.$modal.msgError("bu~bu~出错啦!")
       }
+    },
+    // 重置参数（全部）
+    resetParam() {
+      this.resetSelect()
+      this.resetCombo()
     },
     // 重置参数（出牌）
     resetSelect() {
@@ -1295,8 +1316,7 @@ export default {
         this.cardIndexIWant = ''
         // 更新全场手牌数显示
         this.webSocket.send('{"msgType":"7","msgContent":"Draw A Card From Dropzone","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
-        this.resetSelect()
-        this.resetCombo()
+        this.resetParam()
       })
 
     },
@@ -1308,8 +1328,7 @@ export default {
     confirmIWant() {
       this.showCards = false
       this.webSocket.send('{"msgType":"104","msgContent":' + this.cardIWant + ',"msgTo":' + this.selectedUserName + ',"msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"Send"}')
-      this.resetSelect()
-      this.resetCombo()
+      this.resetParam()
     },
     // 回合结束时放一张弱点牌在牌堆顶
     endWithWeak() {
@@ -1452,7 +1471,6 @@ export default {
 
       100: “我是好人”
       101: “夺笋”
-      102: “我是老六”
       103: “对子”
       104: “三条”
       */
@@ -1626,6 +1644,16 @@ export default {
               this.mainIdentity = this.userList[i].identity
               this.subIdentity = this.userList[i].subIdentity
             }
+          }
+          break
+        case '101':
+          // 获取死亡阵营
+          let deathNumber = parseInt(msg.msgContent)
+          // 如果自己是该阵营
+          if (this.mainIdentity % 4 === deathNumber) {
+            this.killBy = "你被" + this.userList[msg.msgFrom].userName + "举报了，选\"是\"使用求饶，选\"否\"被赶出宿舍。"
+            this.boomTime = '2'
+            this.getBoom = true
           }
           break
         case '103':
