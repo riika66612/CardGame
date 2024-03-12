@@ -1581,7 +1581,6 @@ export default {
             let randomIndex = now.getSeconds() % this.handList.length
             // 将随机的卡牌取出
             let card = this.handList[randomIndex]
-            console.log(card)
             // 将该卡牌从手牌中去除
             this.handList.splice(randomIndex, 1)
             // 将这张手牌发送出去
@@ -1602,7 +1601,40 @@ export default {
           }
           break
         case '104':
+          if (msg.msgExtra === 'Send') {
+            // 交出卡牌的一方
+            let cardIndex = this.handList.indexOf(msg.msgContent)
+            if (cardIndex > -1) {
+              // 如果手中有对面需要的牌
+              // 将牌从手中移除
+              this.handList.splice(cardIndex, 1)
+              // 将牌发送出去
+              this.webSocket.send('{"msgType":"104","msgContent":' + msg.msgContent + ',"msgTo":' + msg.msgFrom + ',"msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"Receive"}')
+            } else {
+              // 如果没有这张牌
+              this.webSocket.send('{"msgType":"104","msgContent":"哈哈哈哈，对面根本没有这牌","msgTo":' + msg.msgFrom + ',"msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":"Receive"}')
+            }
+          } else {
+            // 接收卡牌的一方
+            // 所有玩家更新前台手牌数显示
+            this.userList = msg.msgSub.substring(1, msg.msgSub.length - 1).split(', ')
+            for (let i = 0; i < this.userList.length; i++) {
+              this.userList[i] = JSON.parse(this.userList[i])
+            }
 
+            // 判断卡牌接收者
+            if (this.currentUserNumber - 1 === msg.msgTo) {
+              if (msg.msgContent.startsWith("0")) {
+                // 获得了卡牌
+                this.handList.push(msg.msgContent)
+                // 进行死亡判断
+                this.confirmSurvival()
+              } else {
+                // 没有获得卡牌
+                this.$modal.msgError(msg.msgContent)
+              }
+            }
+          }
           break
       }
     },
