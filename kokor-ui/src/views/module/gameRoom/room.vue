@@ -1302,12 +1302,12 @@ export default {
           }
         case "104":
           if (use) {
-            return !(this.getCardCount("020", list) === 3 || this.getCardCount("021", list) === 3 || this.getCardCount("022", list) === 3
+            return !((this.getCardCount("020", list) === 3 || this.getCardCount("021", list) === 3 || this.getCardCount("022", list) === 3
               || this.getCardCount("023", list) === 3 || this.getCardCount("024", list) === 3 || this.getCardCount("025", list) === 3
               || this.getCardCount("026", list) === 3 || this.getCardCount("027", list) === 3 || this.getCardCount("028", list) === 3
               || this.getCardCount("030", list) === 3 || this.getCardCount("031", list) === 3 || this.getCardCount("032", list) === 3
               || this.getCardCount("033", list) === 3 || this.getCardCount("034", list) === 3 || this.getCardCount("035", list) === 3
-              || this.getCardCount("000", list) === 3 || this.getCardCount("001", list) === 3 && list.length === 3)
+              || this.getCardCount("000", list) === 3 || this.getCardCount("001", list) === 3) && list.length === 3)
           } else {
             return !(this.getCardCount("020", list) >= 3 || this.getCardCount("021", list) >= 3 || this.getCardCount("022", list) >= 3
               || this.getCardCount("023", list) >= 3 || this.getCardCount("024", list) >= 3 || this.getCardCount("025", list) >= 3
@@ -1357,6 +1357,8 @@ export default {
         this.showCombo = false
         this.drawer = false
 
+        this.selectedCardNumber = ''
+
         if (this.selectedCombo === "103" || this.selectedCombo === "104") {
           this.selectedUserName = "好人"
           this.showTarget = true
@@ -1388,11 +1390,21 @@ export default {
       // 将组合技选中的牌放入弃牌堆
       dropCards(this.selectedCardsNumber).then(() => {
         // 从手牌中将其移除
+        // 有多个会全部删除
         // this.handList = this.handList.filter(item => !this.selectedCardsNumber.includes(item))
-        this.selectedCardsIndex.sort()
-        for (let i = this.selectedCardsIndex.length - 1; i >= 0; i--) {
-          this.handList.splice(this.selectedCardsIndex[i], 1)
-        }
+        // 可能存在会有一个删除不掉
+        // this.selectedCardsIndex.sort()
+        // for (let i = this.selectedCardsIndex.length - 1; i >= 0; i--) {
+        //   this.handList.splice(this.selectedCardsIndex[i], 1)
+        // }
+        // 还得是ChatGPT
+        this.selectedCardsIndex.sort((a, b) => b - a); // 降序排列索引，确保正确删除元素
+        this.selectedCardsIndex.forEach(index => {
+          if (index >= 0 && index < this.handList.length) {
+            this.handList.splice(index, 1)
+          }
+        })
+
         // 更新全场手牌数显示
         this.webSocket.send('{"msgType":"7","msgContent":"Use a Combo","msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + (this.selectedCardsNumber.length) + '}')
         // 询问全场是否使用“这不合理”
@@ -1454,7 +1466,7 @@ export default {
     turnEnd() {
       // 进入等待状态
       this.wait = true
-      // 大于8张手牌 -> 弃牌
+      // 手牌过多 -> 弃牌
       if (this.handList.length > this.handLimit) {
         this.needDrop = true
         this.$modal.msg("手牌大于" + this.handLimit + "张，需要弃牌")
@@ -1706,11 +1718,13 @@ export default {
         case '023':
           // 暂存手牌
           const hand = this.handList
-          // 替换成新手牌
-          this.handList = msg.msgContent.substring(1, msg.msgContent.length - 1).split(',')
-          // 若对方手牌为空
-          if (this.handList === '') {
+          const from = msg.msgContent.substring(1, msg.msgContent.length - 1).split(',')
+          console.log(from)
+          if (from[0] === "") {
             this.handList = []
+          } else {
+            // 替换成新手牌
+            this.handList = msg.msgContent.substring(1, msg.msgContent.length - 1).split(',')
           }
           // 自己是被替换的那一方
           if (!this.myTurn) {

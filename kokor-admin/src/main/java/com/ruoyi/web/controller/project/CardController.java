@@ -121,6 +121,7 @@ public class CardController extends BaseController {
         Collections.shuffle(deck);
     }
 
+    // 生成所有牌堆
     @PostMapping("/create/deck")
     public void createFullDeck(@RequestBody Integer number) {
         for (int i = 0; i < 2; i++) {
