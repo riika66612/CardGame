@@ -3,7 +3,17 @@
     <!--按钮行-->
     <div>
       <el-button class="back-button" icon="el-icon-d-arrow-left" size="mini" v-on:click="returnBack">退出</el-button>
-      <span class="tips">手牌上限为：<span style="font-weight: bold">{{ handLimit }}</span></span>
+      <span class="tips" v-show="currentUserNumber===1 && !start">
+        手牌上限为：
+        <span style="font-weight: bold">
+        {{ handLimit }}
+        </span>
+      </span>
+      <span style="margin-left: 3%" v-show="currentUserNumber===1 && !start">
+        <span style="font-weight: bold" v-if="useChange==='0'">不</span>
+        <span style="font-weight: bold">使用 </span>
+        绿枸杞
+      </span>
       <el-button class="setting-button" icon="el-icon-setting" type="success" v-show="currentUserNumber===1 && !start"
                  v-on:click="showSetting = true">高级设置
       </el-button>
@@ -18,6 +28,11 @@
         <!--手牌上限-->
         <el-form-item label="手牌上限：" prop="limit">
           <el-input v-model.number="settingForm.limit" placeholder="请输入1到12之间的数字"/>
+        </el-form-item>
+
+        <el-form-item label="使用绿枸杞" prop="change">
+          <el-radio v-model="useChange" label="0">不启用</el-radio>
+          <el-radio v-model="useChange" label="1">启用</el-radio>
         </el-form-item>
       </el-form>
 
@@ -323,7 +338,7 @@
       </div>
 
       <!--我是好人-->
-      <el-card class="combo-card" style="margin-top: 3%">
+      <el-card class="combo-card" style="margin-top: 3%" v-if="useChange==='0'">
         <!--组合技名称-->
         <div slot="header" class="clearfix">
           <span style="font-weight: bold">我是好人</span>
@@ -335,6 +350,28 @@
 
         <!--组合示例-->
         <el-tooltip effect="dark" :content="comboOne" placement="left">
+          <div>
+            <img class="combo-example" :src="require('./pic/card/035.jpg')" alt="加载失败"/>
+            <span class="combo-example-text">+</span>
+            <img class="combo-example" :src="require('./pic/card/031.jpg')" alt="加载失败"/>
+            <img class="combo-example" style="margin-left: -20%" :src="require('./pic/card/031.jpg')" alt="加载失败"/>
+          </div>
+        </el-tooltip>
+      </el-card>
+
+      <!--我是好人(变体)-->
+      <el-card class="combo-card" style="margin-top: 3%" v-else-if="useChange==='1'">
+        <!--组合技名称-->
+        <div slot="header" class="clearfix">
+          <span style="font-weight: bold">我是好人（变体）</span>
+          <el-button style="float: right;margin-top: -1%" type="primary" size="mini"
+                     :disabled="!myTurn || wait || needDrop || comboUseable('100',handList)"
+                     v-on:click="selectCombo('100')">使用
+          </el-button>
+        </div>
+
+        <!--组合示例-->
+        <el-tooltip effect="dark" :content="comboOneChange" placement="left">
           <div>
             <img class="combo-example" :src="require('./pic/card/035.jpg')" alt="加载失败"/>
             <span class="combo-example-text">+</span>
@@ -522,7 +559,7 @@
 
       <!--按钮-->
       <div slot="footer" class="dialog-footer">
-        <el-button type="primary" :disabled="!handList.includes('001')"
+        <el-button type="primary" :disabled="!(handList.includes('001')||handList.includes('000'))"
                    v-on:click="iWantToLive">是
         </el-button>
         <el-button type="danger" v-on:click="iWantToDie">否</el-button>
@@ -573,6 +610,7 @@ import {
   showDeckNumber,
   showDroppedCards,
   useBeg,
+  useGreen,
   wantToDie,
   seeTopCards,
   endSeeTopCards,
@@ -617,6 +655,8 @@ export default {
       deck: 0,
       // 手牌上限
       handLimit: 8,
+      // 使用变体
+      useChange: '0',
       // 测试作弊
       showAdd: false,
       addCard: '',
@@ -727,6 +767,10 @@ export default {
         颜色卡</strong>，该颜色的所有玩家<br/>
         依次从弃牌堆获得<strong>1张</strong>求饶卡，<br/>
         直到拿完为止。</span>,
+      // “我是好人(变体)” 说明文字
+      comboOneChange: <span>打出<strong>1张白颜色卡+2张同色的<br/>
+        颜色卡</strong>，该颜色的所有玩家<br/>
+        皆可获得<strong>1张</strong>“绿枸杞”（等效于求饶）。</span>,
       // “夺笋” 说明文字
       comboTwo: <span>打出<strong>1张<span style="color:red">红</span>颜色卡+2张同色的<br/>
         颜色卡</strong>，该颜色的所有玩家<br/>
@@ -814,7 +858,7 @@ export default {
       // console.log("游戏开始")
       this.start = true
       createCharacters().then(() => {
-        this.webSocket.send('{"msgType":"1","msgContent":"Start Game","msgTo":"System","msgExtra":' + this.handLimit + '}')
+        this.webSocket.send('{"msgType":"1","msgContent":"Start Game","msgTo":"System","handLimit":' + this.handLimit + ',"useChange":' + this.useChange + '}')
       })
       creatInitialDeck()
     },
@@ -848,7 +892,7 @@ export default {
         } else if (!this.needDrop && this.setWeakness && (number !== '010' && number !== '011' && number !== '012' && number !== '013')) {
           // 盖放弱点时 -> 其它牌不能盖放
           this.showOperate = false
-        } else if (((number === '010' || number === '011' || number === '012' || number === '013' || number === '001'
+        } else if (((number === '010' || number === '011' || number === '012' || number === '013' || number === '000' || number === '001'
           || number === '002' || number === '003' || number === '022' || number === '030' || number === '031' || number === '032'
           || number === '033' || number === '034' || number === '035') || this.wait) && !this.setWeakness && !this.needDrop) {
           // 使用牌时 -> 弱点、颜色、求饶、绿枸杞、宿管不能使用
@@ -1016,21 +1060,40 @@ export default {
     iWantToLive() {
       // 关闭弹窗
       this.getBoom = false
-      // 将刚抽到的宿管或弱点也移除
-      useBeg(this.handList.pop()).then(() => {
-        // 找到第一张“求饶”的索引
-        let index = this.handList.indexOf("001")
-        // 将其删除
-        this.handList.splice(index, 1)
-        // 通知全场你炸了
-        this.webSocket.send('{"msgType":"5","msgContent":"Just a Little Short of Death","msgExtra":' + this.boomTime +
-          ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+      // 优先使用“绿枸杞” 因为是明牌
+      if (this.handList.includes("000")) {
+        // 将刚抽到的宿管或弱点也移除
+        useGreen(this.handList.pop()).then(() => {
+          // 找到第一张“求饶”的索引
+          let index = this.handList.indexOf("000")
+          // 将其删除
+          this.handList.splice(index, 1)
+          // 通知全场你炸了
+          this.webSocket.send('{"msgType":"5","msgContent":"Just a Little Short of Death","msgExtra":' + this.boomTime +
+            ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
 
-        // 如果“掀被子”抽牌没有结束，继续抽
-        if (this.drawCardNumber !== 0) {
-          this.iWantToDraw(this.tempCount)
-        }
-      })
+          // 如果“掀被子”抽牌没有结束，继续抽
+          if (this.drawCardNumber !== 0) {
+            this.iWantToDraw(this.tempCount)
+          }
+        })
+      } else {
+        // 将刚抽到的宿管或弱点也移除
+        useBeg(this.handList.pop()).then(() => {
+          // 找到第一张“求饶”的索引
+          let index = this.handList.indexOf("001")
+          // 将其删除
+          this.handList.splice(index, 1)
+          // 通知全场你炸了
+          this.webSocket.send('{"msgType":"5","msgContent":"Just a Little Short of Death","msgExtra":' + this.boomTime +
+            ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
+
+          // 如果“掀被子”抽牌没有结束，继续抽
+          if (this.drawCardNumber !== 0) {
+            this.iWantToDraw(this.tempCount)
+          }
+        })
+      }
     },
     // 不使用求饶
     iWantToDie() {
@@ -1147,7 +1210,25 @@ export default {
       } else if (this.selectedCombo !== '') {
         switch (this.selectedCombo) {
           case "100":
-            this.showOrder = true
+            if (this.useChange === '0') {
+              this.showOrder = true
+            } else {
+              // 确认要拯救的阵营
+              if (this.selectedCardsNumber.includes("030")) {
+                // 发送消息
+                this.webSocket.send('{"msgType":"105","msgContent":0,"msgTo":"All Players","msgFrom":' + (this.currentUserNumber - 1) + '}')
+              } else if (this.selectedCardsNumber.includes("031")) {
+                // 发送消息
+                this.webSocket.send('{"msgType":"105","msgContent":1,"msgTo":"All Players","msgFrom":' + (this.currentUserNumber - 1) + '}')
+              } else if (this.selectedCardsNumber.includes("032")) {
+                // 发送消息
+                this.webSocket.send('{"msgType":"105","msgContent":2,"msgTo":"All Players","msgFrom":' + (this.currentUserNumber - 1) + '}')
+              } else if (this.selectedCardsNumber.includes("033")) {
+                // 发送消息
+                this.webSocket.send('{"msgType":"105","msgContent":3,"msgTo":"All Players","msgFrom":' + (this.currentUserNumber - 1) + '}')
+              }
+              this.resetParam()
+            }
             break
           case "101":
             // 确认要击毙的阵营
@@ -1672,6 +1753,7 @@ export default {
       101: “夺笋”
       103: “对子”
       104: “三条”
+      105: “我是好人” 变体
       */
     wsMessageHanler(e) {
       // console.log(e.data)
@@ -1697,7 +1779,8 @@ export default {
           // console.log(this.userList)
           break
         case '1':
-          this.handLimit = msg.msgExtra
+          this.handLimit = msg.handLimit
+          this.useChange = msg.useChange
           this.$modal.msgSuccess("游戏开始")
           this.start = true
           break
@@ -1936,6 +2019,14 @@ export default {
                 this.$modal.msgError(msg.msgContent)
               }
             }
+          }
+          break
+        case '105':
+          // 获取被救阵营
+          let greenNumber = parseInt(msg.msgContent)
+          // 如果自己是该阵营
+          if (this.mainIdentity % 4 === greenNumber) {
+            this.handList.push("000")
           }
           break
       }

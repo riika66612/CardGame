@@ -211,6 +211,7 @@ public class WebSocketServer {
             101: “夺笋”
             103: “对子”
             104: “三条”
+            105: “我是好人” 变体
         */
         switch (msgType) {
             case "0": {
@@ -232,14 +233,16 @@ public class WebSocketServer {
                 start.addProperty("msgType", "1");
                 start.addProperty("msgContent", "Game Start");
                 start.addProperty("msgTo", "All Player");
-                start.addProperty("msgExtra", receive.get("msgExtra").getAsInt());
+                start.addProperty("handLimit", receive.get("handLimit").getAsInt());
+                start.addProperty("useChange", receive.get("useChange").getAsString());
                 WebSocketUsers.sendMessageToUsersByText(start.toString());
 
                 JsonObject sending = new JsonObject();
                 sending.addProperty("msgType", "90");
                 sending.addProperty("msgContent", "Game Start");
                 sending.addProperty("msgTo", 1);
-                sending.addProperty("msgExtra", receive.get("msgExtra").getAsInt());
+                sending.addProperty("handLimit", receive.get("handLimit").getAsInt());
+                sending.addProperty("useChange", receive.get("useChange").getAsString());
                 WebSocketUsers.sendMessageToOtherUserByText(sending.toString(), userNameList.get(0));
                 break;
             }
@@ -643,6 +646,27 @@ public class WebSocketServer {
                     receive.addProperty("msgSub", players.toString());
                     WebSocketUsers.sendMessageToUsersByText(receive.toString());
                 }
+                break;
+            }
+            case "105": {
+                // 转发给所有玩家
+                WebSocketUsers.sendMessageToUsersByText(receive.toString());
+
+                // 手牌变化
+                for (GamePlayer player : players) {
+                    // 该阵营所有玩家手牌 +1
+                    if (player.getIdentity() % 4 == receive.get("msgContent").getAsInt()) {
+                        player.setHand(player.getHand() + 1);
+                    }
+                }
+
+                // 更新前台显示
+                JsonObject subSending = new JsonObject();
+                subSending.addProperty("msgType", "7");
+                subSending.addProperty("msgContent", "Hand Change");
+                subSending.addProperty("msgTo", "All Player");
+                subSending.addProperty("msgExtra", players.toString());
+                WebSocketUsers.sendMessageToUsersByText(subSending.toString());
                 break;
             }
         }

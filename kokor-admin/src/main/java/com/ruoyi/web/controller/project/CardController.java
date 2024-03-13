@@ -216,6 +216,17 @@ public class CardController extends BaseController {
         Collections.shuffle(deck);
     }
 
+    // 使用绿枸杞
+    @PostMapping("/use/green")
+    public void greenToSaveLife(@RequestBody String cardNumber) {
+        // 将一张“求饶”放入弃牌区
+        drop.add("000");
+        // 将抽到的宿管或弱点洗回去
+        deck.add(cardNumber);
+        Collections.shuffle(deck);
+        Collections.shuffle(deck);
+    }
+
     // 我选择死亡
     @PostMapping("/die")
     public void iWantToDie(@RequestBody List<String> handList) {

@@ -58,6 +58,15 @@ export function useBeg(number) {
   })
 }
 
+// 使用求饶
+export function useGreen(number) {
+  return request({
+    url: '/project/card/use/green',
+    method: 'post',
+    data: number
+  })
+}
+
 // 不使用求饶
 export function wantToDie(hand) {
   return request({
