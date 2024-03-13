@@ -135,6 +135,14 @@ export function shuffleCards() {
   })
 }
 
+// 使用 100 组合技：我是好人
+export function getLife() {
+  return request({
+    url: '/project/card/use/combo/hero',
+    method: 'post'
+  })
+}
+
 // 使用 102 组合技：我是老六
 export function getCardFromDrop(index) {
   return request({

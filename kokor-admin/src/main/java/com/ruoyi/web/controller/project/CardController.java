@@ -240,7 +240,7 @@ public class CardController extends BaseController {
         drop.add(cardNumber);
     }
 
-    // 弃牌
+    // 弃好多牌
     @PostMapping("/drop/cards")
     public void dropCards(@RequestBody List<String> cards) {
         for (String card : cards) {
@@ -293,7 +293,18 @@ public class CardController extends BaseController {
         Collections.shuffle(deck);
     }
 
-    // 102 我是老六
+    // 100 “我是好人”
+    @PostMapping("/use/combo/hero")
+    public void getLifeFromDrop() {
+        for (int i = drop.size() - 1; i >= 0; i--) {
+            if (drop.get(i).equals("001")) {
+                drop.remove(i);
+                break;
+            }
+        }
+    }
+
+    // 102 “我是老六”
     @PostMapping("/use/combo/six")
     public void getCardFromDrop(@RequestBody Integer index) {
         int idx = (int) index;

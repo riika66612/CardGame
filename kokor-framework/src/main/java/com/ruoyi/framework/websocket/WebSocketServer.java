@@ -581,6 +581,32 @@ public class WebSocketServer {
                 WebSocketUsers.sendMessageToUsersByText(sending.toString());
                 break;
             }
+            case "100":
+                // 获得当前回合玩家
+                int nowTurn = receive.get("msgFrom").getAsInt();
+                // 拿到了牌
+                if (receive.get("msgTo").getAsString().startsWith("Thank")) {
+                    players.get(nowTurn).setHand(players.get(nowTurn).getHand() + 1);
+
+                    // 更新前台显示
+                    JsonObject subSending = new JsonObject();
+                    subSending.addProperty("msgType", "7");
+                    subSending.addProperty("msgContent", "Hand Change");
+                    subSending.addProperty("msgTo", "All Player");
+                    subSending.addProperty("msgExtra", players.toString());
+                    WebSocketUsers.sendMessageToUsersByText(subSending.toString());
+                }
+                // 寻找下一位活人
+                nowTurn = takeCardByTurn(nowTurn, receive);
+
+                // 通知一下位玩家
+                JsonObject sending = new JsonObject();
+                sending.addProperty("msgType", "100");
+                sending.addProperty("msgContent", receive.get("msgContent").getAsInt());
+                sending.addProperty("msgTo", userNameList.get(nowTurn));
+                sending.addProperty("msgExtra", receive.get("msgExtra").getAsString());
+                WebSocketUsers.sendMessageToOtherUserByText(sending.toString(), userNameList.get(nowTurn));
+                break;
             case "101": {
                 // 转发给所有玩家
                 WebSocketUsers.sendMessageToUsersByText(receive.toString());
@@ -619,6 +645,42 @@ public class WebSocketServer {
                 }
                 break;
             }
+        }
+    }
+
+    // 轮流拿牌
+    public int takeCardByTurn(int nowTurn, JsonObject receive) {
+        // 判断顺序
+        if (receive.get("msgExtra").getAsString().equals("0")) {
+            // 当前回合顺序
+            if (order) {
+                if (++nowTurn >= players.size()) {
+                    nowTurn = 0;
+                }
+            } else {
+                if (--nowTurn < 0) {
+                    nowTurn = players.size() - 1;
+                }
+            }
+        } else {
+            // 当前回合逆序
+            if (!order) {
+                if (++nowTurn >= players.size()) {
+                    nowTurn = 0;
+                }
+            } else {
+                if (--nowTurn < 0) {
+                    nowTurn = players.size() - 1;
+                }
+            }
+        }
+        // 如果这个人还活着
+        if (players.get(nowTurn).getLive()) {
+            // 直接返回结果
+            return nowTurn;
+        } else {
+            // 如果这个人寄了，就返回再下一家
+            return takeCardByTurn(nowTurn, receive);
         }
     }
 

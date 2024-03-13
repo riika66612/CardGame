@@ -27,6 +27,12 @@
       </div>
     </el-dialog>
 
+    <!--测试用作弊-->
+    <el-dialog :visible.sync="showAdd">
+      <el-input v-model="addCard"/>
+      <el-button @click="addToHand">确定</el-button>
+    </el-dialog>
+
     <!--主要区域-->
     <div class="main-room" v-on:click="closeOperate">
       <!--左侧用户-->
@@ -47,6 +53,7 @@
         <div class="function-zone" v-show="start">
           <el-button type="primary" plain v-on:click="drawer = true">组合技</el-button>
           <el-button :disabled="!myTurn" v-on:click="drawCard">抽牌</el-button>
+          <el-button :disabled="!myTurn" v-on:click="showAdd=true">添加</el-button>
           <el-button :disabled="!myTurn || wait || needDrop" v-on:click="wantToEndMyTurn">回合结束</el-button>
         </div>
 
@@ -442,6 +449,17 @@
       </div>
     </el-dialog>
 
+    <!--“我是好人”拿牌顺序选择-->
+    <el-dialog class="select-end-method" title="请选择获得牌的方向" :visible.sync="showOrder" width="20%" :show-close="false"
+               :close-on-click-modal="false">
+      <div style="margin-top: -5%"><span style="font-weight: bold;color: red">注：</span>无论什么顺序都是自己先拿牌</div>
+      <!--操作按钮-->
+      <div style="margin: 3% 0 0 10%">
+        <el-button type="primary" plain v-on:click="iAmHero('0')">当前回合顺序</el-button>
+        <el-button type="primary" plain v-on:click="iAmHero('1')">当前回合逆序</el-button>
+      </div>
+    </el-dialog>
+
     <!--“我是老六”选牌-->
     <el-dialog title="选择你想要的牌" :visible.sync="seeDrop" width="80%" :show-close="false" :close-on-click-modal="false">
       <div class="show-drop">
@@ -559,6 +577,7 @@ import {
   seeTopCards,
   endSeeTopCards,
   shuffleCards,
+  getLife,
   getCardFromDrop,
 } from "@/api/project/card"
 import {getIpAddr} from "@/api/project/ipAddr"
@@ -598,6 +617,9 @@ export default {
       deck: 0,
       // 手牌上限
       handLimit: 8,
+      // 测试作弊
+      showAdd: false,
+      addCard: '',
       // 高级设置 弹窗控制
       showSetting: false,
       // 设置表单
@@ -729,16 +751,18 @@ export default {
       // 被选择的手牌们
       selectedCardsNumber: [],
       selectedCardsIndex: [],
+      // “我是好人”顺序选择 弹窗控制
+      showOrder: false,
+      // 选择的想要的卡
+      cardIWant: '',
+      // “我是老六”选择卡牌 弹窗控制
+      seeDrop: false,
+      // 想要卡牌的索引
+      cardIndexIWant: '',
       // “三条”指定卡牌 弹窗控制
       showCards: false,
       // 所有卡牌的编号
       cardList: ['000', '001', '002', '003', '010', '011', '012', '013', '020', '021', '022', '023', '024', '025', '026', '027', '028', '030', '031', '032', '033', '034', '035'],
-      // 选择的想要的卡
-      cardIWant: '',
-      // “我是老六”选择卡牌 控制
-      seeDrop: false,
-      // 想要卡牌的索引
-      cardIndexIWant: ''
     }
   },
   created() {
@@ -755,6 +779,11 @@ export default {
   },
   computed: {},
   methods: {
+    // 测试用作弊
+    addToHand() {
+      this.showAdd = false
+      this.handList.push(this.addCard)
+    },
     // 返回
     returnBack() {
       this.closeOperate()
@@ -1118,6 +1147,7 @@ export default {
       } else if (this.selectedCombo !== '') {
         switch (this.selectedCombo) {
           case "100":
+            this.showOrder = true
             break
           case "101":
             // 确认要击毙的阵营
@@ -1411,6 +1441,68 @@ export default {
         this.webSocket.send('{"msgType":"9","msgContent":' + this.selectedCombo + ',"msgExtra":' + this.selectedUserName + ',"msgTo":"System","msgFrom":' + (this.currentUserNumber - 1) + '}')
       })
     },
+    // “我是好人”生效  '0':正序  '1':逆序
+    iAmHero(order) {
+      this.showOrder = false
+      // 确认要拯救的阵营
+      if (this.selectedCardsNumber.includes("030")) {
+        // 自己先拿牌
+        if (this.mainIdentity % 4 === 0) {
+          this.getLifeFromDrop(0, order)
+        } else {
+          // 发送消息
+          this.webSocket.send('{"msgType":"100","msgContent":0,"msgTo":"My Party","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + order + '}')
+        }
+      } else if (this.selectedCardsNumber.includes("031")) {
+        // 自己先拿牌
+        if (this.mainIdentity % 4 === 1) {
+          this.getLifeFromDrop(1, order)
+        } else {
+          // 发送消息
+          this.webSocket.send('{"msgType":"100","msgContent":1,"msgTo":"My Party","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + order + '}')
+        }
+      } else if (this.selectedCardsNumber.includes("032")) {
+        // 自己先拿牌
+        if (this.mainIdentity % 4 === 2) {
+          this.getLifeFromDrop(2, order)
+        } else {
+          // 发送消息
+          this.webSocket.send('{"msgType":"100","msgContent":2,"msgTo":"My Party","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + order + '}')
+        }
+      } else if (this.selectedCardsNumber.includes("033")) {
+        // 自己先拿牌
+        if (this.mainIdentity % 4 === 3) {
+          this.getLifeFromDrop(3, order)
+        } else {
+          // 发送消息
+          this.webSocket.send('{"msgType":"100","msgContent":3,"msgTo":"My Party","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + order + '}')
+        }
+      }
+      this.resetParam()
+    },
+    // “我是好人”效果 -> 从弃牌区拿“求饶”
+    getLifeFromDrop(number, order) {
+      // 选知道弃牌区里有什么
+      showDroppedCards().then(res => {
+        this.dropList = res.rows
+        // console.log(this.dropList)
+        if (this.dropList.includes("001")) {
+          // 有“求饶”牌
+          // 放到手里
+          this.handList.push("001")
+          // 从弃牌堆中移除一张
+          getLife().then(() => {
+            // 发送消息
+            this.webSocket.send('{"msgType":"100","msgContent":' + number + ',"msgTo":"Thank you","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + order + '}')
+          })
+        } else {
+          // 如果没有
+          this.$modal.msgError("弃牌堆已经没有“求饶”啦")
+          // 发送消息
+          this.webSocket.send('{"msgType":"100","msgContent":' + number + ',"msgTo":"My Party","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + order + '}')
+        }
+      })
+    },
     // 选择想要的卡牌的索引
     selectIndexWant(index) {
       this.cardIndexIWant = index
@@ -1545,7 +1637,7 @@ export default {
       msgSub: 多出的内容
      */
     subSend() {
-      this.webSocket.send("11111")
+      // this.webSocket.send("11111")
     },
     wsOpenHanler(event) {
       console.log('ws建立连接成功')
@@ -1719,7 +1811,6 @@ export default {
           // 暂存手牌
           const hand = this.handList
           const from = msg.msgContent.substring(1, msg.msgContent.length - 1).split(',')
-          console.log(from)
           if (from[0] === "") {
             this.handList = []
           } else {
@@ -1757,6 +1848,20 @@ export default {
               // 改变身份
               this.mainIdentity = this.userList[i].identity
               this.subIdentity = this.userList[i].subIdentity
+            }
+          }
+          break
+        case '100':
+          // 如果不是出牌的玩家
+          if (!this.myTurn) {
+            // 获取被救阵营
+            let lifeNumber = parseInt(msg.msgContent)
+            // 如果自己是该阵营
+            if (this.mainIdentity % 4 === lifeNumber) {
+              this.getLifeFromDrop(lifeNumber, msg.msgExtra)
+            } else {
+              // 发送消息
+              this.webSocket.send('{"msgType":"100","msgContent":' + lifeNumber + ',"msgTo":"My Party","msgFrom":' + (this.currentUserNumber - 1) + ',"msgExtra":' + msg.msgExtra + '}')
             }
           }
           break
