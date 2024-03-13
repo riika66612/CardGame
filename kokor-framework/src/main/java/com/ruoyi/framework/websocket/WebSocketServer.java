@@ -584,7 +584,7 @@ public class WebSocketServer {
                 WebSocketUsers.sendMessageToUsersByText(sending.toString());
                 break;
             }
-            case "100":
+            case "100": {
                 // 获得当前回合玩家
                 int nowTurn = receive.get("msgFrom").getAsInt();
                 // 拿到了牌
@@ -610,6 +610,7 @@ public class WebSocketServer {
                 sending.addProperty("msgExtra", receive.get("msgExtra").getAsString());
                 WebSocketUsers.sendMessageToOtherUserByText(sending.toString(), userNameList.get(nowTurn));
                 break;
+            }
             case "101": {
                 // 转发给所有玩家
                 WebSocketUsers.sendMessageToUsersByText(receive.toString());
