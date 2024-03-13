@@ -43,10 +43,10 @@
     </el-dialog>
 
     <!--测试用作弊-->
-    <el-dialog :visible.sync="showAdd">
-      <el-input v-model="addCard"/>
-      <el-button @click="addToHand">确定</el-button>
-    </el-dialog>
+    <!--<el-dialog :visible.sync="showAdd">-->
+    <!--  <el-input v-model="addCard"/>-->
+    <!--  <el-button @click="addToHand">确定</el-button>-->
+    <!--</el-dialog>-->
 
     <!--主要区域-->
     <div class="main-room" v-on:click="closeOperate">
@@ -67,8 +67,8 @@
         <!--功能按钮区-->
         <div class="function-zone" v-show="start">
           <el-button type="primary" plain v-on:click="drawer = true">组合技</el-button>
-          <el-button :disabled="!myTurn" v-on:click="drawCard">抽牌</el-button>
-          <el-button :disabled="!myTurn" v-on:click="showAdd=true">添加</el-button>
+          <!--<el-button :disabled="!myTurn" v-on:click="drawCard">抽牌</el-button>-->
+          <!--<el-button :disabled="!myTurn" v-on:click="showAdd=true">添加</el-button>-->
           <el-button :disabled="!myTurn || wait || needDrop" v-on:click="wantToEndMyTurn">回合结束</el-button>
         </div>
 
@@ -658,8 +658,8 @@ export default {
       // 使用变体
       useChange: '0',
       // 测试作弊
-      showAdd: false,
-      addCard: '',
+      // showAdd: false,
+      // addCard: '',
       // 高级设置 弹窗控制
       showSetting: false,
       // 设置表单
@@ -824,10 +824,10 @@ export default {
   computed: {},
   methods: {
     // 测试用作弊
-    addToHand() {
-      this.showAdd = false
-      this.handList.push(this.addCard)
-    },
+    // addToHand() {
+    //   this.showAdd = false
+    //   this.handList.push(this.addCard)
+    // },
     // 返回
     returnBack() {
       this.closeOperate()
